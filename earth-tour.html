@@ -1,6 +1,6 @@
 <!--
 ====================================================================
-  KITE — Earth Observation Tour  |  earth-tour.html
+  MI — Maddy's Intelligence  |  earth-tour.html
 ====================================================================
 
   QUICK START
@@ -41,7 +41,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KITE — Earth Observation Tour</title>
+<title>MI — Maddy's Intelligence</title>
 <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,7 +50,7 @@
 /* ── Variables ── */
 :root {
   --bg:      #050810;
-  --panel:   rgba(5,12,28,0.88);
+  --panel:   rgba(5,12,28,0.92);
   --accent:  #00D4FF;
   --accent2: #FF6B35;
   --text:    #E8F4FD;
@@ -66,7 +66,7 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 /* ── Globe container ── */
 #cesiumContainer { position:absolute; inset:0; }
 
-/* Hide every default Cesium UI widget */
+/* Hide all default Cesium UI */
 .cesium-widget-credits,
 .cesium-viewer-toolbar,
 .cesium-viewer-animationContainer,
@@ -76,201 +76,362 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 .cesium-navigationHelpButton-wrapper,
 .cesium-viewer-geocoderContainer { display:none !important; }
 
-/* ── Scanline vignette ── */
+/* ── Subtle scanline ── */
 #scanlines {
   position:fixed; inset:0; pointer-events:none; z-index:1;
-  background:
-    repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,
+    rgba(0,0,0,0.022) 2px,rgba(0,0,0,0.022) 4px);
 }
 
 /* ═══════════════ LOADING SCREEN ═══════════════ */
 #loadingScreen {
   position:fixed; inset:0; background:var(--bg);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  z-index:1000; transition:opacity 0.9s ease;
+  z-index:1000; transition:opacity 0.8s ease; padding:2rem;
 }
 #loadingScreen.fade-out { opacity:0; pointer-events:none; }
-
-.ld-logo   { font-family:'Orbitron',sans-serif; font-size:3.5rem; font-weight:900;
-             color:var(--accent); letter-spacing:.3em; line-height:1; margin-bottom:.4rem; }
-.ld-sub    { font-family:'Orbitron',sans-serif; font-size:.55rem; color:var(--muted);
-             letter-spacing:.5em; margin-bottom:3.5rem; }
-.ld-status { font-family:'Space Mono',monospace; font-size:.68rem; color:var(--accent);
-             letter-spacing:.12em; margin-bottom:1.2rem; min-height:1.2em; }
-
-.ld-track { width:320px; height:2px; background:var(--border); position:relative; overflow:hidden; }
-.ld-fill  { height:100%; background:var(--accent); width:0%;
-            box-shadow:0 0 8px var(--accent); animation:ldScan 4s ease-in-out forwards; }
-.ld-shine { position:absolute; top:-3px; left:-50px; width:50px; height:8px;
-            background:linear-gradient(90deg,transparent,var(--accent),transparent);
-            animation:ldShine 1.4s ease-in-out infinite; }
-@keyframes ldScan  { 0%{width:0} 25%{width:35%} 55%{width:68%} 80%{width:88%} 100%{width:100%} }
-@keyframes ldShine { 0%{left:-50px} 100%{left:350px} }
+.ld-logo   { font-family:'Orbitron',sans-serif; font-size:clamp(2rem,8vw,3.5rem);
+             font-weight:900; color:var(--accent); letter-spacing:.3em; line-height:1; margin-bottom:.4rem; }
+.ld-sub    { font-family:'Orbitron',sans-serif; font-size:clamp(.38rem,.9vw,.55rem);
+             color:var(--muted); letter-spacing:.4em; margin-bottom:3rem; text-align:center; }
+.ld-status { font-family:'Space Mono',monospace; font-size:clamp(.58rem,1.5vw,.68rem);
+             color:var(--accent); letter-spacing:.1em; margin-bottom:1.2rem; min-height:1.2em;
+             text-align:center; }
+.ld-track  { width:min(320px,85vw); height:2px; background:var(--border);
+             position:relative; overflow:hidden; }
+.ld-fill   { height:100%; background:var(--accent); width:0%;
+             box-shadow:0 0 8px var(--accent); animation:ldScan 3s ease-in-out forwards; }
+.ld-shine  { position:absolute; top:-3px; left:-50px; width:50px; height:8px;
+             background:linear-gradient(90deg,transparent,var(--accent),transparent);
+             animation:ldShine 1.3s ease-in-out infinite; }
+@keyframes ldScan  { 0%{width:0} 30%{width:40%} 60%{width:72%} 85%{width:91%} 100%{width:100%} }
+@keyframes ldShine { 0%{left:-50px} 100%{left:calc(min(320px,85vw) + 50px)} }
 
 /* ═══════════════ TOKEN WARNING ═══════════════ */
 #tokenWarning {
   position:fixed; inset:0; background:var(--bg);
   display:none; flex-direction:column; align-items:center; justify-content:center;
-  z-index:990; text-align:center; padding:2rem;
+  z-index:990; text-align:center; padding:1.5rem;
 }
 #tokenWarning.show { display:flex; }
-.tw-icon  { font-size:2.5rem; color:var(--accent2); margin-bottom:1.2rem; }
-.tw-title { font-family:'Orbitron',sans-serif; font-size:1.4rem; color:var(--accent2);
-            letter-spacing:.08em; margin-bottom:1rem; }
-.tw-body  { font-size:.8rem; color:var(--muted); line-height:2; max-width:520px; }
+.tw-icon  { font-size:2.2rem; color:var(--accent2); margin-bottom:1rem; }
+.tw-title { font-family:'Orbitron',sans-serif; font-size:clamp(1rem,4vw,1.4rem);
+            color:var(--accent2); letter-spacing:.06em; margin-bottom:1rem; }
+.tw-body  { font-size:clamp(.7rem,2vw,.8rem); color:var(--muted); line-height:2;
+            max-width:520px; }
 .tw-body a { color:var(--accent); text-decoration:none; }
-.tw-code  { display:inline-block; margin-top:1.2rem; padding:.6rem 1.4rem;
-            background:rgba(0,212,255,.06); border:1px solid var(--border);
-            border-radius:3px; color:var(--accent); font-size:.75rem; }
+.tw-code   { display:inline-block; margin-top:1rem; padding:.5rem 1.2rem;
+             background:rgba(0,212,255,.06); border:1px solid var(--border);
+             border-radius:3px; color:var(--accent); font-size:.72rem; word-break:break-all; }
 
 /* ═══════════════ TOP BAR ═══════════════ */
 #topBar {
-  position:fixed; top:0; left:0; right:0; height:72px;
+  position:fixed; top:0; left:0; right:0; height:clamp(52px,8vw,72px);
   background:linear-gradient(180deg,rgba(5,8,16,.92) 0%,transparent 100%);
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 2rem; z-index:100; pointer-events:none;
+  padding:0 clamp(.8rem,3vw,2rem); z-index:100; pointer-events:none;
 }
-.kite-name    { font-family:'Orbitron',sans-serif; font-size:1.6rem; font-weight:900;
-                color:var(--accent); letter-spacing:.25em; line-height:1; }
-.kite-tagline { font-family:'Orbitron',sans-serif; font-size:.42rem; color:var(--muted);
-                letter-spacing:.45em; margin-top:4px; }
-#counter { font-family:'Space Mono',monospace; font-size:1rem; color:var(--text); letter-spacing:.08em; }
-#counter .cur { color:var(--accent); font-size:1.35rem; font-weight:700; }
-#counter .sep { color:var(--muted); margin:0 4px; }
+.kite-name    { font-family:'Orbitron',sans-serif;
+                font-size:clamp(1rem,4vw,1.6rem); font-weight:900;
+                color:var(--accent); letter-spacing:.2em; line-height:1; }
+.kite-tagline { font-family:'Orbitron',sans-serif; font-size:clamp(.3rem,.8vw,.42rem);
+                color:var(--muted); letter-spacing:.4em; margin-top:3px; }
+#counter      { font-family:'Space Mono',monospace; font-size:clamp(.75rem,2.5vw,1rem);
+                color:var(--text); letter-spacing:.06em; }
+#counter .cur { color:var(--accent); font-size:clamp(1rem,3.5vw,1.35rem); font-weight:700; }
+#counter .sep { color:var(--muted); margin:0 3px; }
 
-/* ═══════════════ PHASE BADGE (top-right) ═══════════════ */
+/* ═══════════════ PHASE BADGE ═══════════════ */
 #phaseBadge {
-  position:fixed; top:80px; right:2rem; z-index:100; text-align:right;
-  opacity:0; transition:opacity .4s;
+  position:fixed; top:clamp(58px,9vw,80px); right:clamp(.8rem,3vw,2rem);
+  z-index:100; text-align:right; opacity:0; transition:opacity .4s;
 }
 #phaseBadge.show { opacity:1; }
-.ph-label { font-family:'Space Mono',monospace; font-size:.55rem; color:var(--muted); letter-spacing:.12em; }
-.ph-value { font-family:'Orbitron',sans-serif; font-size:.65rem; color:var(--accent2);
-            letter-spacing:.18em; margin-top:2px; }
+.ph-label { font-family:'Space Mono',monospace; font-size:.52rem; color:var(--muted); letter-spacing:.1em; }
+.ph-value { font-family:'Orbitron',sans-serif; font-size:.62rem; color:var(--accent2);
+            letter-spacing:.15em; margin-top:2px; }
 
-/* ═══════════════ LOCATION PANEL (bottom-left) ═══════════════ */
+/* ═══════════════ BOTTOM UI WRAPPER ═══════════════ */
+/* Desktop: two separate panels. Mobile: side-by-side compact row */
+#bottomUI {
+  position:fixed; left:0; right:0; bottom:82px;
+  display:flex; align-items:flex-end; justify-content:space-between;
+  padding:0 clamp(.5rem,2vw,2rem); gap:.75rem; z-index:100;
+  pointer-events:none;
+}
+
+/* ═══════════════ LOCATION PANEL ═══════════════ */
 #locationPanel {
-  position:fixed; bottom:108px; left:2rem; width:350px;
+  flex:1 1 0; min-width:0; max-width:360px;
   background:var(--panel); border:1px solid var(--border); border-radius:4px;
-  padding:1.6rem 1.6rem 1.4rem; z-index:100; backdrop-filter:blur(14px);
-  transform:translateX(-110%); opacity:0;
-  transition:transform .6s cubic-bezier(.22,.61,.36,1), opacity .6s ease;
+  padding:clamp(.9rem,2.5vw,1.6rem) clamp(.9rem,2.5vw,1.6rem) clamp(.8rem,2vw,1.4rem);
+  backdrop-filter:blur(16px); pointer-events:auto;
+  transform:translateY(110%); opacity:0;
+  transition:transform .55s cubic-bezier(.22,.61,.36,1), opacity .55s ease;
 }
-#locationPanel.show { transform:translateX(0); opacity:1; }
+#locationPanel.show { transform:translateY(0); opacity:1; }
 
-.lp-num  { font-family:'Orbitron',sans-serif; font-size:4rem; font-weight:900;
-           color:var(--accent); opacity:.12; position:absolute; top:.8rem; right:1.2rem;
-           line-height:1; user-select:none; }
-.lp-name { font-family:'Orbitron',sans-serif; font-size:1.15rem; font-weight:700;
-           color:var(--text); letter-spacing:.04em; margin-bottom:.2rem; }
-.lp-region { font-family:'Space Mono',monospace; font-size:.64rem; color:var(--muted);
-             letter-spacing:.18em; text-transform:uppercase; margin-bottom:.9rem; }
-.lp-coords { font-family:'Space Mono',monospace; font-size:.68rem; color:var(--accent); line-height:2; }
-.lp-coords .lbl { color:var(--muted); font-size:.58rem; }
-.lp-rule { width:100%; height:1px;
-           background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.1),transparent);
-           margin:.95rem 0; }
-.lp-desc { font-family:'Space Mono',monospace; font-size:.62rem; color:var(--muted);
-           line-height:1.85; letter-spacing:.04em; }
+.lp-num    { font-family:'Orbitron',sans-serif; font-size:clamp(2.2rem,6vw,4rem);
+             font-weight:900; color:var(--accent); opacity:.12;
+             position:absolute; top:.6rem; right:1rem; line-height:1; user-select:none; }
+.lp-name   { font-family:'Orbitron',sans-serif;
+             font-size:clamp(.8rem,2.8vw,1.15rem); font-weight:700;
+             color:var(--text); letter-spacing:.04em; margin-bottom:.2rem; }
+.lp-region { font-family:'Space Mono',monospace; font-size:clamp(.52rem,1.5vw,.64rem);
+             color:var(--muted); letter-spacing:.15em; text-transform:uppercase; margin-bottom:.75rem; }
+.lp-coords { font-family:'Space Mono',monospace; font-size:clamp(.52rem,1.4vw,.68rem);
+             color:var(--accent); line-height:1.9; }
+.lp-coords .lbl { color:var(--muted); font-size:.56rem; }
+.lp-rule   { width:100%; height:1px;
+             background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.1),transparent);
+             margin:.8rem 0; }
+.lp-desc   { font-family:'Space Mono',monospace; font-size:clamp(.54rem,1.3vw,.62rem);
+             color:var(--muted); line-height:1.8; letter-spacing:.03em; }
 
-/* ═══════════════ IMAGE PANEL (bottom-right) ═══════════════ */
+/* ═══════════════ IMAGE PANEL ═══════════════ */
 #imagePanel {
-  position:fixed; bottom:108px; right:2rem; width:310px;
-  z-index:100; transform:translateX(110%); opacity:0;
-  transition:transform .6s cubic-bezier(.22,.61,.36,1) .08s, opacity .6s ease .08s;
+  flex:0 0 auto; width:clamp(120px,30vw,300px);
+  pointer-events:auto;
+  transform:translateY(110%); opacity:0;
+  transition:transform .55s cubic-bezier(.22,.61,.36,1) .07s, opacity .55s ease .07s;
 }
-#imagePanel.show { transform:translateX(0); opacity:1; }
+#imagePanel.show { transform:translateY(0); opacity:1; }
 
-.ip-label { font-family:'Orbitron',sans-serif; font-size:.5rem; color:var(--muted);
-            letter-spacing:.38em; text-transform:uppercase; margin-bottom:.5rem; }
-.ip-card  { width:280px; border:1px solid var(--accent); border-radius:4px;
+.ip-label { font-family:'Orbitron',sans-serif; font-size:clamp(.38rem,.8vw,.5rem);
+            color:var(--muted); letter-spacing:.3em; text-transform:uppercase; margin-bottom:.4rem; }
+.ip-card  { width:100%; border:1px solid var(--accent); border-radius:4px;
             overflow:hidden; position:relative; background:#04080f;
-            box-shadow:0 0 18px rgba(0,212,255,.22),0 0 40px rgba(0,212,255,.07); }
-.ip-card img { width:100%; height:auto; display:none; }
+            box-shadow:0 0 16px rgba(0,212,255,.2),0 0 36px rgba(0,212,255,.06); }
+.ip-card img { width:100%; height:auto; display:block; }
+.ip-card img[style*="display:none"] { display:none !important; }
 
-/* corner bracket decorations */
-.ip-card::before,
-.ip-card::after {
-  content:''; position:absolute; width:14px; height:14px; z-index:2; pointer-events:none;
+/* Corner bracket decorations */
+.ip-card::before, .ip-card::after {
+  content:''; position:absolute; width:12px; height:12px; z-index:2; pointer-events:none;
 }
 .ip-card::before { top:4px; left:4px;
   border-top:1px solid var(--accent); border-left:1px solid var(--accent); }
 .ip-card::after  { bottom:4px; right:4px;
   border-bottom:1px solid var(--accent); border-right:1px solid var(--accent); }
 
-.ip-placeholder {
-  position:relative; min-height:170px; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:.6rem;
-  background:rgba(0,212,255,.02);
-}
+.ip-placeholder { position:relative; min-height:clamp(80px,14vw,160px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:.5rem; background:rgba(0,212,255,.02); }
 .ip-placeholder-grid {
   position:absolute; inset:0;
   background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
-  background-size:28px 28px;
+    linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
+  background-size:24px 24px;
 }
-.ip-placeholder-txt { font-family:'Space Mono',monospace; font-size:.58rem;
-                      color:var(--muted); text-align:center; position:relative; z-index:1;
-                      white-space:pre-line; line-height:1.7; }
-.ip-meta { margin-top:.5rem; display:flex; justify-content:space-between; }
-.ip-meta-k { font-family:'Space Mono',monospace; font-size:.58rem; color:var(--muted); }
-.ip-meta-v { font-family:'Space Mono',monospace; font-size:.58rem; color:var(--accent); }
+.ip-placeholder-txt { font-family:'Space Mono',monospace; font-size:.54rem;
+  color:var(--muted); text-align:center; position:relative; z-index:1;
+  white-space:pre-line; line-height:1.6; }
+.ip-meta   { margin-top:.4rem; display:flex; justify-content:space-between; gap:.3rem; }
+.ip-meta-k { font-family:'Space Mono',monospace; font-size:clamp(.44rem,1vw,.58rem); color:var(--muted); }
+.ip-meta-v { font-family:'Space Mono',monospace; font-size:clamp(.44rem,1vw,.58rem); color:var(--accent); }
 
 /* ═══════════════ PROGRESS BAR ═══════════════ */
-#progressWrap {
-  position:fixed; bottom:60px; left:0; right:0; padding:0 2rem; z-index:100;
-}
-.prog-dots { display:flex; justify-content:space-between; margin-bottom:7px; padding:0 2px; }
-.prog-dot  { width:8px; height:8px; border-radius:50%; cursor:pointer;
+#progressWrap { position:fixed; bottom:clamp(50px,8vw,60px); left:0; right:0;
+                padding:0 clamp(.5rem,2vw,2rem); z-index:100; }
+.prog-dots { display:flex; justify-content:space-between; margin-bottom:6px; padding:0 2px; }
+.prog-dot  { width:clamp(8px,2vw,10px); height:clamp(8px,2vw,10px); border-radius:50%;
+             cursor:pointer; touch-action:manipulation;
              background:rgba(107,139,164,.3); border:1px solid rgba(107,139,164,.25);
-             transition:background .35s, border-color .35s; }
+             transition:background .3s, border-color .3s; }
 .prog-dot.visited { background:rgba(0,212,255,.35); border-color:rgba(0,212,255,.45); }
 .prog-dot.active  { background:var(--accent); border-color:var(--accent);
                     animation:dotPulse 1.6s ease-in-out infinite; }
 @keyframes dotPulse {
   0%,100% { box-shadow:0 0 4px rgba(0,212,255,.5); }
-  50%     { box-shadow:0 0 12px rgba(0,212,255,1),0 0 22px rgba(0,212,255,.45); }
+  50%     { box-shadow:0 0 12px rgba(0,212,255,1),0 0 20px rgba(0,212,255,.4); }
 }
 .prog-track { height:2px; background:rgba(107,139,164,.18); border-radius:1px; overflow:hidden; }
-#progFill   { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.55));
-              border-radius:1px; box-shadow:0 0 6px var(--accent); }
+#progFill   { height:100%; width:0%;
+              background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.55));
+              border-radius:1px; box-shadow:0 0 5px var(--accent); }
 
 /* ═══════════════ CONTROLS ═══════════════ */
 #controls {
-  position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
-  display:flex; align-items:center; gap:.7rem; z-index:100;
+  position:fixed; bottom:clamp(8px,2vw,14px); left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:clamp(.5rem,2vw,.75rem); z-index:100;
 }
 .ctrl-btn {
-  width:40px; height:40px; border-radius:50%;
+  width:clamp(40px,10vw,44px); height:clamp(40px,10vw,44px); border-radius:50%;
   border:1px solid var(--border); background:var(--panel);
-  color:var(--text); cursor:pointer;
+  color:var(--text); cursor:pointer; touch-action:manipulation;
   display:flex; align-items:center; justify-content:center;
   backdrop-filter:blur(10px);
   transition:border-color .2s, box-shadow .2s, background .2s;
+  -webkit-tap-highlight-color:transparent;
 }
-.ctrl-btn:hover { border-color:var(--accent); box-shadow:0 0 12px rgba(0,212,255,.3);
-                  background:rgba(0,212,255,.06); }
-.ctrl-btn.primary { width:48px; height:48px; border-color:var(--accent); color:var(--accent); }
-.ctrl-btn svg { width:16px; height:16px; fill:currentColor; }
+.ctrl-btn:hover, .ctrl-btn:active {
+  border-color:var(--accent); box-shadow:0 0 12px rgba(0,212,255,.3);
+  background:rgba(0,212,255,.08);
+}
+.ctrl-btn.primary { width:clamp(46px,12vw,52px); height:clamp(46px,12vw,52px);
+                    border-color:var(--accent); color:var(--accent); }
+.ctrl-btn svg { width:clamp(14px,3.5vw,18px); height:clamp(14px,3.5vw,18px); fill:currentColor; }
 
 /* ═══════════════ TOUR COMPLETE ═══════════════ */
 #tourComplete {
   position:fixed; inset:0; background:rgba(5,8,16,.93);
   display:none; flex-direction:column; align-items:center; justify-content:center;
-  z-index:200; backdrop-filter:blur(10px);
+  z-index:200; backdrop-filter:blur(10px); padding:1.5rem; text-align:center;
 }
 #tourComplete.show { display:flex; }
-.tc-eyebrow  { font-family:'Orbitron',sans-serif; font-size:.6rem; color:var(--muted);
-               letter-spacing:.55em; text-transform:uppercase; margin-bottom:.9rem; }
-.tc-heading  { font-family:'Orbitron',sans-serif; font-size:3rem; font-weight:900;
-               color:var(--accent); letter-spacing:.1em; margin-bottom:.5rem; }
-.tc-sub      { font-family:'Space Mono',monospace; font-size:.72rem; color:var(--muted);
-               margin-bottom:3rem; }
-.tc-restart  { font-family:'Orbitron',sans-serif; font-size:.7rem; letter-spacing:.22em;
-               color:var(--bg); background:var(--accent); border:none; border-radius:2px;
-               padding:.85rem 2.4rem; cursor:pointer;
-               transition:box-shadow .2s, transform .2s; }
-.tc-restart:hover { box-shadow:0 0 22px rgba(0,212,255,.55); transform:translateY(-1px); }
+.tc-eyebrow { font-family:'Orbitron',sans-serif; font-size:clamp(.48rem,.9vw,.6rem);
+              color:var(--muted); letter-spacing:.45em; text-transform:uppercase; margin-bottom:.9rem; }
+.tc-heading { font-family:'Orbitron',sans-serif; font-size:clamp(1.8rem,6vw,3rem);
+              font-weight:900; color:var(--accent); letter-spacing:.08em; margin-bottom:.5rem; }
+.tc-sub     { font-family:'Space Mono',monospace; font-size:clamp(.6rem,1.5vw,.72rem);
+              color:var(--muted); margin-bottom:2.5rem; }
+.tc-restart { font-family:'Orbitron',sans-serif; font-size:clamp(.6rem,1.8vw,.7rem);
+              letter-spacing:.2em; color:var(--bg); background:var(--accent);
+              border:none; border-radius:2px; padding:.8rem 2rem; cursor:pointer;
+              touch-action:manipulation; transition:box-shadow .2s, transform .2s; }
+.tc-restart:hover, .tc-restart:active { box-shadow:0 0 22px rgba(0,212,255,.55); transform:translateY(-1px); }
+
+/* ═══════════════ MOBILE OVERRIDES ( ≤ 600px ) ═══════════════ */
+@media (max-width: 600px) {
+  /* Hide tagline and phase badge to save space */
+  .kite-tagline { display:none; }
+  #phaseBadge   { display:none; }
+
+  /* Stack panels full-width when screen is narrow */
+  #bottomUI {
+    flex-direction:column-reverse;
+    align-items:stretch;
+    bottom:78px;
+    gap:.5rem;
+  }
+
+  #locationPanel { max-width:100%; }
+
+  #imagePanel {
+    width:100%;
+    display:flex; flex-direction:row; align-items:center; gap:.6rem;
+  }
+
+  .ip-label { display:none; }
+
+  /* On small screens image sits left with text meta right */
+  .ip-card { width:clamp(100px,38vw,140px); flex-shrink:0; }
+
+  /* Push meta to a vertical column beside the image */
+  .ip-meta-wrap { display:flex; flex-direction:column; gap:.3rem; justify-content:center; }
+  .ip-meta      { margin-top:0; flex-direction:column; gap:.2rem; }
+
+  /* Tighten location panel */
+  .lp-coords { line-height:1.7; }
+  .lp-rule   { margin:.6rem 0; }
+
+  /* Bigger progress dots for touch */
+  .prog-dot { width:12px; height:12px; }
+}
+
+@media (max-width: 400px) {
+  .lp-coords { display:none; }
+}
+
+/* ═══════════════ LETTER REVEAL OVERLAY ═══════════════ */
+#letterReveal {
+  position:fixed; top:50%; left:50%;
+  transform:translate(-50%,-50%) scale(.5);
+  text-align:center; pointer-events:none; z-index:150;
+  opacity:0; transition:opacity .55s ease, transform .55s cubic-bezier(.34,1.56,.64,1);
+}
+#letterReveal.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+#letterReveal.hide { opacity:0; transform:translate(-50%,-50%) scale(1.4);
+                     transition:opacity .5s ease, transform .5s ease; }
+.lr-pre  { font-family:'Orbitron',sans-serif; font-size:clamp(.42rem,1vw,.58rem);
+           color:var(--accent2); letter-spacing:.5em; text-transform:uppercase; margin-bottom:.5rem; }
+.lr-char { font-family:'Orbitron',sans-serif; font-size:clamp(6rem,18vw,14rem);
+           font-weight:900; color:var(--accent); line-height:1;
+           text-shadow:0 0 40px rgba(0,212,255,.9),0 0 80px rgba(0,212,255,.5),
+                       0 0 160px rgba(0,212,255,.25); }
+.lr-loc  { font-family:'Space Mono',monospace; font-size:clamp(.5rem,1.3vw,.7rem);
+           color:var(--muted); letter-spacing:.2em; margin-top:.6rem; }
+
+/* ═══════════════ LETTER ON LOCATION PANEL ═══════════════ */
+.lp-letter-row { display:flex; align-items:center; gap:.8rem; margin-bottom:.5rem; }
+.lp-letter-badge {
+  font-family:'Orbitron',sans-serif; font-size:clamp(2rem,5vw,3rem); font-weight:900;
+  color:var(--accent); line-height:1;
+  text-shadow:0 0 16px rgba(0,212,255,.7);
+  flex-shrink:0;
+}
+.lp-letter-hint {
+  font-family:'Space Mono',monospace; font-size:clamp(.48rem,1.1vw,.58rem);
+  color:var(--muted); line-height:1.6;
+}
+.lp-letter-hint strong { color:var(--accent2); display:block; font-size:clamp(.55rem,1.3vw,.65rem); }
+
+/* ═══════════════ BIRTHDAY END SCREEN ═══════════════ */
+#tourComplete {
+  overflow-y:auto; padding:clamp(1rem,4vw,2rem) clamp(.8rem,3vw,1.5rem);
+  gap:0;
+}
+.bday-pre {
+  font-family:'Orbitron',sans-serif; font-size:clamp(.42rem,1vw,.58rem);
+  color:var(--muted); letter-spacing:.5em; text-transform:uppercase;
+  margin-bottom:1.2rem; opacity:0;
+  animation:bdFadeUp .7s ease .1s forwards;
+}
+.bday-letters {
+  display:flex; gap:clamp(.2rem,1.2vw,.6rem); justify-content:center;
+  flex-wrap:wrap; margin-bottom:1.8rem;
+}
+.bday-letter { display:flex; flex-direction:column; align-items:center; opacity:0; }
+.bday-char   { font-family:'Orbitron',sans-serif; font-size:clamp(2rem,5.5vw,4.5rem);
+               font-weight:900; color:var(--accent); line-height:1;
+               text-shadow:0 0 20px rgba(0,212,255,.8),0 0 40px rgba(0,212,255,.35); }
+.bday-loc    { font-family:'Space Mono',monospace; font-size:clamp(.3rem,.65vw,.42rem);
+               color:var(--muted); text-transform:uppercase; letter-spacing:.06em;
+               margin-top:.25rem; text-align:center; max-width:clamp(45px,6vw,72px); line-height:1.3; }
+@keyframes bdLetterPop {
+  0%   { opacity:0; transform:translateY(22px) scale(.55); }
+  60%  { opacity:1; transform:translateY(-4px) scale(1.12); }
+  100% { opacity:1; transform:translateY(0) scale(1); }
+}
+.bday-photo-wrap {
+  position:relative; margin:0 auto 1.4rem;
+  width:clamp(90px,22vw,160px); height:clamp(90px,22vw,160px);
+  opacity:0; animation:bdFadeUp .9s ease forwards;
+}
+.bday-photo-wrap img {
+  width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;
+  border:2px solid var(--accent);
+  box-shadow:0 0 30px rgba(0,212,255,.5),0 0 60px rgba(0,212,255,.2);
+}
+.bday-photo-ring {
+  position:absolute; inset:-8px; border-radius:50%;
+  border:1px solid rgba(0,212,255,.35);
+  animation:bdRing 2.2s ease-in-out infinite;
+}
+.bday-photo-ring2 {
+  position:absolute; inset:-16px; border-radius:50%;
+  border:1px solid rgba(0,212,255,.18);
+  animation:bdRing 2.2s ease-in-out .6s infinite;
+}
+@keyframes bdRing { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.04);opacity:1} }
+.bday-hb {
+  font-family:'Orbitron',sans-serif; font-size:clamp(1.3rem,4.5vw,2.8rem); font-weight:900;
+  color:var(--accent2); letter-spacing:.1em;
+  text-shadow:0 0 28px rgba(255,107,53,.65);
+  margin-bottom:.3rem; opacity:0; animation:bdFadeUp .7s ease forwards;
+}
+.bday-name {
+  font-family:'Orbitron',sans-serif; font-size:clamp(.9rem,2.5vw,1.6rem); font-weight:700;
+  color:var(--accent); letter-spacing:.35em;
+  margin-bottom:1rem; opacity:0; animation:bdFadeUp .7s ease forwards;
+}
+.bday-msg {
+  font-family:'Space Mono',monospace; font-size:clamp(.58rem,1.4vw,.72rem);
+  color:var(--muted); line-height:1.95; text-align:center;
+  max-width:440px; margin:0 auto 1.8rem;
+  opacity:0; animation:bdFadeUp .7s ease forwards;
+}
+@keyframes bdFadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
 </style>
 </head>
 <body>
@@ -280,8 +441,8 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 
 <!-- Loading -->
 <div id="loadingScreen">
-  <div class="ld-logo">KITE</div>
-  <div class="ld-sub">Earth Observation Platform</div>
+  <div class="ld-logo">MI</div>
+  <div class="ld-sub">Maddy's Intelligence</div>
   <div class="ld-status" id="ldStatus">INITIALIZING EARTH OBSERVATION SYSTEM...</div>
   <div class="ld-track"><div class="ld-fill"></div><div class="ld-shine"></div></div>
 </div>
@@ -305,8 +466,8 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 <!-- Top bar -->
 <div id="topBar">
   <div>
-    <div class="kite-name">KITE</div>
-    <div class="kite-tagline">Earth Observation Tour</div>
+    <div class="kite-name">MI</div>
+    <div class="kite-tagline">Maddy's Intelligence</div>
   </div>
   <div id="counter">
     <span class="cur" id="ctrCur">01</span>
@@ -321,37 +482,58 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
   <div class="ph-value" id="phaseVal">STANDBY</div>
 </div>
 
-<!-- Location info panel (bottom-left) -->
-<div id="locationPanel">
-  <div class="lp-num"  id="lpNum">01</div>
-  <div class="lp-name" id="lpName">Location</div>
-  <div class="lp-region" id="lpRegion">Region</div>
-  <div class="lp-coords">
-    <div><span class="lbl">LAT&nbsp;&nbsp;</span><span id="lpLat">—</span></div>
-    <div><span class="lbl">LON&nbsp;&nbsp;</span><span id="lpLon">—</span></div>
-  </div>
-  <div class="lp-rule"></div>
-  <div class="lp-desc" id="lpDesc">—</div>
+<!-- Letter reveal overlay (center-screen flash) -->
+<div id="letterReveal">
+  <div class="lr-pre">God's Inscription Found</div>
+  <div class="lr-char" id="lrChar">Y</div>
+  <div class="lr-loc"  id="lrLoc">Ramsay, New Zealand</div>
 </div>
 
-<!-- Image panel (bottom-right) -->
-<div id="imagePanel">
-  <div class="ip-label">Landsat Imagery</div>
-  <div class="ip-card" id="ipCard">
-    <img id="ipImg" src="" alt="">
-    <div class="ip-placeholder" id="ipPH">
-      <div class="ip-placeholder-grid"></div>
-      <div class="ip-placeholder-txt" id="ipPHTxt">NO IMAGERY<br>AVAILABLE</div>
+<!-- Both info panels sit inside a shared bottom row -->
+<div id="bottomUI">
+
+  <!-- Location info panel -->
+  <div id="locationPanel">
+    <div class="lp-num" id="lpNum">01</div>
+    <div class="lp-letter-row">
+      <div class="lp-letter-badge" id="lpLetterBadge">Y</div>
+      <div class="lp-letter-hint">
+        <strong id="lpLetterHint">Resembles the letter Y</strong>
+        <span id="lpLetterSub">as seen from space</span>
+      </div>
+    </div>
+    <div class="lp-name"   id="lpName">Location</div>
+    <div class="lp-region" id="lpRegion">Region</div>
+    <div class="lp-coords">
+      <div><span class="lbl">LAT&nbsp;&nbsp;</span><span id="lpLat">—</span></div>
+      <div><span class="lbl">LON&nbsp;&nbsp;</span><span id="lpLon">—</span></div>
+    </div>
+    <div class="lp-rule"></div>
+    <div class="lp-desc" id="lpDesc">—</div>
+  </div>
+
+  <!-- Image panel -->
+  <div id="imagePanel">
+    <div class="ip-label">Landsat Imagery</div>
+    <div class="ip-card" id="ipCard">
+      <img id="ipImg" src="" alt="" style="display:none">
+      <div class="ip-placeholder" id="ipPH">
+        <div class="ip-placeholder-grid"></div>
+        <div class="ip-placeholder-txt" id="ipPHTxt">NO IMAGERY<br>AVAILABLE</div>
+      </div>
+    </div>
+    <div class="ip-meta-wrap">
+      <div class="ip-meta">
+        <span class="ip-meta-k">SENSOR</span>
+        <span class="ip-meta-v">LANDSAT 8 OLI</span>
+      </div>
+      <div class="ip-meta" style="margin-top:3px">
+        <span class="ip-meta-k">SOURCE</span>
+        <span class="ip-meta-v">NASA / USGS</span>
+      </div>
     </div>
   </div>
-  <div class="ip-meta">
-    <span class="ip-meta-k">SENSOR</span>
-    <span class="ip-meta-v">LANDSAT 8 OLI</span>
-  </div>
-  <div class="ip-meta" style="margin-top:3px">
-    <span class="ip-meta-k">SOURCE</span>
-    <span class="ip-meta-v">NASA / USGS</span>
-  </div>
+
 </div>
 
 <!-- Progress bar -->
@@ -374,12 +556,22 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
   </button>
 </div>
 
-<!-- Tour complete -->
+<!-- Birthday finale screen -->
 <div id="tourComplete">
-  <div class="tc-eyebrow">Mission Accomplished</div>
-  <div class="tc-heading">TOUR COMPLETE</div>
-  <div class="tc-sub">8 locations &nbsp;·&nbsp; 8 Landsat images &nbsp;·&nbsp; 1 planet</div>
-  <button class="tc-restart" id="btnRestart">RESTART TOUR</button>
+  <div class="bday-pre">A message from the universe</div>
+  <div class="bday-letters" id="bdayLetters"><!-- filled by JS --></div>
+  <div class="bday-photo-wrap" id="bdayPhotoWrap">
+    <img src="Yogyatha.jfif" alt="Yogyatha" id="bdayPhoto">
+    <div class="bday-photo-ring"></div>
+    <div class="bday-photo-ring2"></div>
+  </div>
+  <div class="bday-hb"   id="bdayHB">HAPPY BIRTHDAY</div>
+  <div class="bday-name" id="bdayHBName">YOGYATHA</div>
+  <div class="bday-msg"  id="bdayMsg">
+    God wrote your name across the world in rivers, lakes and mountains.<br>
+    You were always meant to be celebrated.
+  </div>
+  <button class="tc-restart" id="btnRestart">WATCH AGAIN &#9654;</button>
 </div>
 
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
@@ -403,56 +595,64 @@ const LOCATIONS = [
     id: 1, name: 'Ramsay', region: 'New Zealand',
     lat: -43.522056, lon: 170.831583,
     image: 'Ramsay Newzeland.jpeg',
-    description: 'Alpine valley and glacial terrain in the Southern Alps',
+    letter: 'Y',
+    description: 'Valley branches fork apart like a Y written by glaciers in the Southern Alps',
     bounds: null
   },
   {
     id: 2, name: 'Crater Lake', region: 'Oregon, USA',
     lat: 42.936111, lon: -122.101306,
     image: 'Crater.jpeg',
-    description: 'Volcanic caldera lake formed by the collapse of Mount Mazama',
+    letter: 'O',
+    description: 'A perfect volcanic circle — nature drew the letter O in ancient fire and water',
     bounds: null
   },
   {
     id: 3, name: 'Fonte Boa', region: 'Amazonas, Brazil',
     lat: -2.441889, lon: -66.278806,
     image: 'Fonte Boa.jpeg',
-    description: 'Amazon rainforest river meanders and floodplain oxbow lakes',
+    letter: 'G',
+    description: 'The Amazon bends back on itself, tracing a G through the heart of the rainforest',
     bounds: null
   },
   {
     id: 4, name: 'Bíobío River', region: 'Chile',
     lat: -37.267333, lon: -72.728583,
     image: 'Bibio River.jpeg',
-    description: 'River delta and agricultural patchwork in central Chile',
+    letter: 'Y',
+    description: 'The river splits into a Y-shaped delta as it meets the Pacific coast of Chile',
     bounds: null
   },
   {
     id: 5, name: 'Yukon Delta', region: 'Alaska, USA',
     lat: 62.554917, lon: -164.936306,
     image: 'Yukon delta.jpeg',
-    description: 'Arctic river delta wetlands and tundra permafrost channel patterns',
+    letter: 'A',
+    description: 'Distributary channels radiate like an A across the vast Arctic tundra delta',
     bounds: null
   },
   {
     id: 6, name: 'Liwa', region: 'United Arab Emirates',
     lat: 23.175000, lon: 53.798000,
     image: 'Liwa.jpeg',
-    description: "Rub' al Khali mega-dune formations in the Empty Quarter desert",
+    letter: 'T',
+    description: 'Mega-dune ridges cross at right angles, forming a T in the Empty Quarter sands',
     bounds: null
   },
   {
     id: 7, name: 'Khorinsky District', region: 'Buryatia, Russia',
     lat: 52.047333, lon: 109.780889,
     image: 'Kironsky.jpeg',
-    description: 'Siberian boreal taiga forest and river valley terrain',
+    letter: 'H',
+    description: 'Two Siberian river valleys linked by a ridge — the letter H carved in taiga',
     bounds: null
   },
   {
     id: 8, name: 'Lake Guakhmaz', region: 'Azerbaijan',
     lat: 40.664111, lon: 47.110056,
     image: 'Lake Gukamez.jpeg',
-    description: 'Mud volcano lake formations on the Caspian lowland plains',
+    letter: 'A',
+    description: 'Mud volcano channels converge at a peak, drawing the letter A on the Caspian plain',
     bounds: null
   }
 ];
@@ -592,11 +792,13 @@ async function initCesium() {
       baseLayer:                              false,   // we add manually below
     });
 
-    viewer.scene.globe.maximumScreenSpaceError = 2;
+    // Higher error threshold = fewer tiles fetched = much faster initial load
+    viewer.scene.globe.maximumScreenSpaceError = 8;
     viewer.scene.globe.enableLighting          = true;
     viewer.scene.fog.enabled                   = false;
     viewer.scene.globe.showGroundAtmosphere    = true;
     viewer.scene.skyAtmosphere.show            = true;
+    viewer.scene.globe.preloadAncestors        = false; // don't pre-fetch parent tiles
 
     // Add satellite imagery — four fallbacks in case any API is unavailable
     await addBaseImagery();
@@ -604,14 +806,16 @@ async function initCesium() {
     buildDots();
     document.getElementById('ldStatus').textContent = 'LOADING SATELLITE TILES...';
 
+    // Start as soon as the first batch of tiles renders — don't wait for full globe
     viewer.scene.globe.tileLoadProgressEvent.addEventListener(remaining => {
-      if (remaining === 0 && !experienceStarted) {
+      if (!experienceStarted && remaining < 30) {
         document.getElementById('ldStatus').textContent = 'SYSTEMS ONLINE';
-        setTimeout(beginExperience, 600);
+        setTimeout(beginExperience, 400);
       }
     });
 
-    setTimeout(() => { if (!experienceStarted) beginExperience(); }, 8000);
+    // Hard fallback — start no matter what after 4 s
+    setTimeout(() => { if (!experienceStarted) beginExperience(); }, 4000);
 
   } catch (err) {
     console.error('Cesium init error:', err);
@@ -723,6 +927,7 @@ async function startTour(startIdx) {
     if (myId !== tourId) return;
 
     setPhase('OBSERVING');
+    viewer.scene.globe.maximumScreenSpaceError = 2; // higher quality when viewing close-up
 
     // Add Landsat overlay (non-blocking, fire-and-forget add)
     addOverlay(loc);
@@ -742,6 +947,7 @@ async function startTour(startIdx) {
 
     // Depart
     setPhase('DEPARTING');
+    viewer.scene.globe.maximumScreenSpaceError = 8; // fast tiles during inter-location flight
     hidePanels();
     await fadeOutOverlay();
     if (myId !== tourId) return;
@@ -750,11 +956,11 @@ async function startTour(startIdx) {
     if (myId !== tourId) return;
   }
 
-  // Tour complete
+  // Birthday finale
   if (myId === tourId) {
     setPhase('COMPLETE');
     await flyTo(0, 15, 22000000, -90, 5, null);
-    document.getElementById('tourComplete').classList.add('show');
+    showBirthdayScreen();
   }
 }
 
@@ -850,34 +1056,87 @@ function animateAlpha(layer, from, to, ms) {
 // UI CONTROLLER
 // ============================================================
 function showPanels(loc) {
-  document.getElementById('lpNum').textContent    = pad2(loc.id);
-  document.getElementById('lpName').textContent   = loc.name;
-  document.getElementById('lpRegion').textContent = loc.region;
-  document.getElementById('lpLat').textContent    =
-    `${loc.lat.toFixed(6)}°  (${toDMS(loc.lat, true)})`;
-  document.getElementById('lpLon').textContent    =
-    `${loc.lon.toFixed(6)}°  (${toDMS(loc.lon, false)})`;
-  document.getElementById('lpDesc').textContent   = loc.description;
+  // Location info
+  document.getElementById('lpNum').textContent        = pad2(loc.id);
+  document.getElementById('lpName').textContent       = loc.name;
+  document.getElementById('lpRegion').textContent     = loc.region;
+  document.getElementById('lpLat').textContent        = `${loc.lat.toFixed(6)}°  (${toDMS(loc.lat, true)})`;
+  document.getElementById('lpLon').textContent        = `${loc.lon.toFixed(6)}°  (${toDMS(loc.lon, false)})`;
+  document.getElementById('lpDesc').textContent       = loc.description;
+
+  // Letter badge on panel
+  document.getElementById('lpLetterBadge').textContent = loc.letter;
+  document.getElementById('lpLetterHint').textContent   = `Resembles the letter ${loc.letter}`;
+  document.getElementById('lpLetterSub').textContent    = 'as seen from space';
 
   // Image card
   const img = document.getElementById('ipImg');
   const ph  = document.getElementById('ipPH');
   img.style.display = 'none';
   ph.style.display  = 'flex';
-  document.getElementById('ipPHTxt').textContent =
-    `${loc.lat.toFixed(4)}°\n${loc.lon.toFixed(4)}°`;
-
+  document.getElementById('ipPHTxt').textContent = `${loc.lat.toFixed(4)}°\n${loc.lon.toFixed(4)}°`;
   img.onload  = () => { img.style.display = 'block'; ph.style.display = 'none'; };
   img.onerror = () => { img.style.display = 'none';  ph.style.display = 'flex'; };
   img.src = loc.image;
 
+  // Slide panels in
   document.getElementById('locationPanel').classList.add('show');
   document.getElementById('imagePanel').classList.add('show');
+
+  // Big letter flash in center — fades after 2.5 s
+  revealLetter(loc.letter, `${loc.name}, ${loc.region}`);
+  setTimeout(hideLetter, 2500);
 }
 
 function hidePanels() {
   document.getElementById('locationPanel').classList.remove('show');
   document.getElementById('imagePanel').classList.remove('show');
+  hideLetter();
+}
+
+let letterHideTimer = null;
+function revealLetter(char, location) {
+  if (letterHideTimer) { clearTimeout(letterHideTimer); letterHideTimer = null; }
+  document.getElementById('lrChar').textContent = char;
+  document.getElementById('lrLoc').textContent  = location;
+  const el = document.getElementById('letterReveal');
+  el.classList.remove('hide');
+  el.classList.add('show');
+}
+function hideLetter() {
+  const el = document.getElementById('letterReveal');
+  el.classList.remove('show');
+  el.classList.add('hide');
+  letterHideTimer = setTimeout(() => el.classList.remove('hide'), 600);
+}
+
+function showBirthdayScreen() {
+  const tc = document.getElementById('tourComplete');
+  tc.classList.add('show');
+
+  // Build YOGYATHA letters with staggered pop-in
+  const wrap = document.getElementById('bdayLetters');
+  wrap.innerHTML = '';
+  LOCATIONS.forEach((loc, i) => {
+    const div  = document.createElement('div');
+    div.className = 'bday-letter';
+    div.innerHTML = `<div class="bday-char">${loc.letter}</div>
+                     <div class="bday-loc">${loc.name}</div>`;
+    div.style.animation = `bdLetterPop .55s cubic-bezier(.34,1.56,.64,1) ${.15 + i * .22}s forwards`;
+    wrap.appendChild(div);
+  });
+
+  // Stagger photo, heading, name, message, button
+  const allLettersDone = .15 + 7 * .22 + .55; // ~2.24s
+  const photoDelay  = allLettersDone + .3;
+  const hbDelay     = photoDelay + .7;
+  const nameDelay   = hbDelay + .3;
+  const msgDelay    = nameDelay + .35;
+
+  document.getElementById('bdayPhotoWrap').style.animationDelay = photoDelay + 's';
+  document.getElementById('bdayHB').style.animationDelay        = hbDelay    + 's';
+  document.getElementById('bdayHBName').style.animationDelay    = nameDelay  + 's';
+  document.getElementById('bdayMsg').style.animationDelay       = msgDelay   + 's';
 }
 
 function updateCounter(i) {
