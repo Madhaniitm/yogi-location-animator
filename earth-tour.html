@@ -28,9 +28,6 @@
 
   TUNING (constants at top of <script>)
   --------------------------------------
-  IMAGE_PADDING_DEGREES   Size of Landsat drape on globe.
-                          Default 0.15° ≈ 15 km half-width.
-                          Increase to 0.5–1.5 if images look too small.
   DWELL_SECONDS           Time spent at each location (default 8).
   APPROACH_ALTITUDE_KM    High flyover altitude before zooming in (default 800).
   OBSERVATION_ALTITUDE_KM Close observation altitude (default 35).
@@ -53,9 +50,10 @@
   --panel:   rgba(5,12,28,0.92);
   --accent:  #00D4FF;
   --accent2: #FF6B35;
-  --text:    #E8F4FD;
-  --muted:   #6B8BA4;
-  --border:  rgba(0,212,255,0.22);
+  --text:    #F0F8FF;
+  --muted:   #C2DCF0;       /* was #6B8BA4 — raised so all body text is readable */
+  --subtle:  #7AAFC8;       /* for truly secondary labels */
+  --border:  rgba(0,212,255,0.25);
 }
 
 /* ── Reset ── */
@@ -186,11 +184,11 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
              background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.1),transparent);
              margin:.8rem 0; }
 .lp-desc   { font-family:'Space Mono',monospace; font-size:clamp(.54rem,1.3vw,.62rem);
-             color:var(--muted); line-height:1.8; letter-spacing:.03em; }
+             color:var(--text); line-height:1.8; letter-spacing:.03em; }
 
 /* ═══════════════ IMAGE PANEL ═══════════════ */
 #imagePanel {
-  flex:0 0 auto; width:clamp(120px,30vw,300px);
+  flex:0 0 auto; width:min(42vw,360px);
   pointer-events:auto;
   transform:translateY(110%); opacity:0;
   transition:transform .55s cubic-bezier(.22,.61,.36,1) .07s, opacity .55s ease .07s;
@@ -252,8 +250,9 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 
 /* ═══════════════ CONTROLS ═══════════════ */
 #controls {
-  position:fixed; bottom:clamp(8px,2vw,14px); left:50%; transform:translateX(-50%);
-  display:flex; align-items:center; gap:clamp(.5rem,2vw,.75rem); z-index:100;
+  position:fixed; bottom:clamp(10px,2.5vw,16px); left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:clamp(1rem,4vw,2rem); z-index:100;
+  white-space:nowrap;
 }
 .ctrl-btn {
   width:clamp(40px,10vw,44px); height:clamp(40px,10vw,44px); border-radius:50%;
@@ -269,7 +268,10 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
   background:rgba(0,212,255,.08);
 }
 .ctrl-btn.primary { width:clamp(46px,12vw,52px); height:clamp(46px,12vw,52px);
-                    border-color:var(--accent); color:var(--accent); }
+                    border-color:var(--accent); color:var(--accent);
+                    box-shadow:0 0 10px rgba(0,212,255,.25); }
+.ctrl-btn.primary.paused { border-color:var(--accent2); color:var(--accent2);
+                           box-shadow:0 0 14px rgba(255,107,53,.4); }
 .ctrl-btn svg { width:clamp(14px,3.5vw,18px); height:clamp(14px,3.5vw,18px); fill:currentColor; }
 
 /* ═══════════════ TOUR COMPLETE ═══════════════ */
@@ -293,8 +295,8 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 
 /* ═══════════════ MOBILE OVERRIDES ( ≤ 600px ) ═══════════════ */
 @media (max-width: 600px) {
-  /* Hide tagline and phase badge to save space */
-  .kite-tagline { display:none; }
+  /* Shrink tagline on mobile; hide phase badge */
+  .kite-tagline { font-size:clamp(.28rem,.65vw,.36rem); letter-spacing:.25em; }
   #phaseBadge   { display:none; }
 
   /* Stack panels full-width when screen is narrow */
@@ -309,17 +311,17 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 
   #imagePanel {
     width:100%;
-    display:flex; flex-direction:row; align-items:center; gap:.6rem;
+    display:flex; flex-direction:column; align-items:stretch; gap:.4rem;
   }
 
   .ip-label { display:none; }
 
-  /* On small screens image sits left with text meta right */
-  .ip-card { width:clamp(100px,38vw,140px); flex-shrink:0; }
+  /* Full-width image card on mobile */
+  .ip-card { width:100%; flex-shrink:0; }
 
-  /* Push meta to a vertical column beside the image */
-  .ip-meta-wrap { display:flex; flex-direction:column; gap:.3rem; justify-content:center; }
-  .ip-meta      { margin-top:0; flex-direction:column; gap:.2rem; }
+  /* Meta row below image */
+  .ip-meta-wrap { display:flex; flex-direction:column; gap:.3rem; }
+  .ip-meta      { margin-top:.3rem; flex-direction:row; flex-wrap:wrap; gap:.3rem; }
 
   /* Tighten location panel */
   .lp-coords { line-height:1.7; }
@@ -395,25 +397,17 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 }
 .bday-photo-wrap {
   position:relative; margin:0 auto 1.4rem;
-  width:clamp(90px,22vw,160px); height:clamp(90px,22vw,160px);
+  width:min(90vw,580px); height:auto;
   opacity:0; animation:bdFadeUp .9s ease forwards;
+  border-radius:8px; overflow:hidden;
+  border:2px solid var(--accent);
+  box-shadow:0 0 30px rgba(0,212,255,.45),0 0 60px rgba(0,212,255,.18),
+             0 0 90px rgba(0,212,255,.08);
 }
 .bday-photo-wrap img {
-  width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;
-  border:2px solid var(--accent);
-  box-shadow:0 0 30px rgba(0,212,255,.5),0 0 60px rgba(0,212,255,.2);
+  width:100%; height:auto; object-fit:contain; display:block;
+  border-radius:0;
 }
-.bday-photo-ring {
-  position:absolute; inset:-8px; border-radius:50%;
-  border:1px solid rgba(0,212,255,.35);
-  animation:bdRing 2.2s ease-in-out infinite;
-}
-.bday-photo-ring2 {
-  position:absolute; inset:-16px; border-radius:50%;
-  border:1px solid rgba(0,212,255,.18);
-  animation:bdRing 2.2s ease-in-out .6s infinite;
-}
-@keyframes bdRing { 0%,100%{transform:scale(1);opacity:.5} 50%{transform:scale(1.04);opacity:1} }
 .bday-hb {
   font-family:'Orbitron',sans-serif; font-size:clamp(1.3rem,4.5vw,2.8rem); font-weight:900;
   color:var(--accent2); letter-spacing:.1em;
@@ -427,7 +421,7 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 }
 .bday-msg {
   font-family:'Space Mono',monospace; font-size:clamp(.58rem,1.4vw,.72rem);
-  color:var(--muted); line-height:1.95; text-align:center;
+  color:var(--text); line-height:1.95; text-align:center;
   max-width:440px; margin:0 auto 1.8rem;
   opacity:0; animation:bdFadeUp .7s ease forwards;
 }
@@ -562,8 +556,6 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
   <div class="bday-letters" id="bdayLetters"><!-- filled by JS --></div>
   <div class="bday-photo-wrap" id="bdayPhotoWrap">
     <img src="Yogyatha.jfif" alt="Yogyatha" id="bdayPhoto">
-    <div class="bday-photo-ring"></div>
-    <div class="bday-photo-ring2"></div>
   </div>
   <div class="bday-hb"   id="bdayHB">HAPPY BIRTHDAY</div>
   <div class="bday-name" id="bdayHBName">YOGYATHA</div>
@@ -580,7 +572,6 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 // CONFIGURATION — edit these
 // ============================================================
 const CESIUM_ION_TOKEN        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwZDMyZWMxNy01MmU2LTQ2MjUtYTIzOC0wNTZkN2VhNmFhYTYiLCJpZCI6NDI1NTAwLCJpYXQiOjE3Nzc0OTUwMDV9.-Fk9AWtWJTFHmDO5BGlN2UO6GW65EcMA3rJ9W1DZ7TY';
-const IMAGE_PADDING_DEGREES   = 0.15;   // half-width of Landsat drape box; raise to 0.5–1.5 for bigger coverage
 const APPROACH_ALTITUDE_KM    = 800;
 const OBSERVATION_ALTITUDE_KM = 35;
 const DWELL_SECONDS           = 8;
@@ -664,10 +655,8 @@ let viewer            = null;
 let currentIndex      = 0;
 let isPlaying         = true;
 let tourId            = 0;          // increment to cancel running tour
-let currentLayer      = null;
 let activeDwell       = null;
 let experienceStarted = false;
-let overlaySeq        = 0;   // incremented per addOverlay call to detect stale async results
 
 // ============================================================
 // UTILITIES
@@ -682,15 +671,6 @@ function toDMS(deg, isLat) {
   const s   = ((mf - m) * 60).toFixed(1);
   const dir = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
   return `${d}°${pad2(m)}'${s}" ${dir}`;
-}
-
-// Aspect-correct bounding box (compensates longitude compression at high latitudes)
-function calcBounds(loc) {
-  if (loc.bounds) return loc.bounds;
-  const latPad = IMAGE_PADDING_DEGREES;
-  const lonPad = IMAGE_PADDING_DEGREES / Math.max(0.1, Math.cos(loc.lat * Math.PI / 180));
-  return { west: loc.lon - lonPad, east: loc.lon + lonPad,
-           south: loc.lat - latPad, north: loc.lat + latPad };
 }
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -929,9 +909,6 @@ async function startTour(startIdx) {
     setPhase('OBSERVING');
     viewer.scene.globe.maximumScreenSpaceError = 2; // higher quality when viewing close-up
 
-    // Add Landsat overlay (non-blocking, fire-and-forget add)
-    addOverlay(loc);
-
     // Show panels
     showPanels(loc);
 
@@ -949,7 +926,6 @@ async function startTour(startIdx) {
     setPhase('DEPARTING');
     viewer.scene.globe.maximumScreenSpaceError = 8; // fast tiles during inter-location flight
     hidePanels();
-    await fadeOutOverlay();
     if (myId !== tourId) return;
 
     await delay(400);
@@ -987,70 +963,6 @@ function flyTo(lon, lat, altM, pitchDeg, durS, easingFn) {
 // ============================================================
 // IMAGERY LAYER MANAGER
 // ============================================================
-async function addOverlay(loc) {
-  // Remove any previous layer synchronously
-  if (currentLayer) {
-    if (viewer.imageryLayers.contains(currentLayer))
-      viewer.imageryLayers.remove(currentLayer, true);
-    currentLayer = null;
-  }
-
-  const mySeq = ++overlaySeq;
-  const b     = calcBounds(loc);
-  const rect  = Cesium.Rectangle.fromDegrees(b.west, b.south, b.east, b.north);
-
-  try {
-    let provider;
-    if (typeof Cesium.SingleTileImageryProvider.fromUrl === 'function') {
-      provider = await Cesium.SingleTileImageryProvider.fromUrl(loc.image, { rectangle: rect });
-    } else {
-      provider = new Cesium.SingleTileImageryProvider({ url: loc.image, rectangle: rect });
-    }
-
-    // If tour has advanced (overlaySeq changed) while we were awaiting, discard
-    if (mySeq !== overlaySeq) return;
-
-    // Use new ImageryLayer API (CesiumJS 1.104+); fall back to deprecated helper
-    let layer;
-    try {
-      layer = new Cesium.ImageryLayer(provider);
-      viewer.imageryLayers.add(layer);
-    } catch (_) {
-      layer = viewer.imageryLayers.addImageryProvider(provider);
-    }
-    layer.alpha  = 0;
-    currentLayer = layer;
-    animateAlpha(layer, 0, 1, 1400);
-  } catch (e) {
-    console.warn(`Image load skipped for "${loc.name}":`, e.message || e);
-  }
-}
-
-function fadeOutOverlay() {
-  if (!currentLayer) return Promise.resolve();
-  const layer = currentLayer;
-  currentLayer = null;
-  return animateAlpha(layer, layer.alpha, 0, 700).then(() => {
-    if (viewer.imageryLayers.contains(layer))
-      viewer.imageryLayers.remove(layer, true);
-  });
-}
-
-function animateAlpha(layer, from, to, ms) {
-  return new Promise(res => {
-    const t0 = Date.now();
-    const tick = () => {
-      if (!viewer.imageryLayers.contains(layer)) { res(); return; }
-      const t = Math.min(1, (Date.now() - t0) / ms);
-      // ease-in-out quad
-      const e = t < .5 ? 2*t*t : -1 + (4 - 2*t)*t;
-      layer.alpha = from + (to - from) * e;
-      if (t >= 1) res();
-      else requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-}
 
 // ============================================================
 // UI CONTROLLER
@@ -1172,11 +1084,6 @@ function setPhase(txt) {
   document.getElementById('phaseVal').textContent = txt;
 }
 
-function syncPPIcon() {
-  document.getElementById('icoPlay').style.display  = isPlaying ? 'none'  : 'block';
-  document.getElementById('icoPause').style.display = isPlaying ? 'block' : 'none';
-}
-
 // ============================================================
 // NAVIGATION
 // ============================================================
@@ -1184,12 +1091,6 @@ function jumpTo(idx) {
   if (idx < 0 || idx >= LOCATIONS.length) return;
   _cleanupCurrent();
   startTour(idx);
-}
-
-function togglePP() {
-  isPlaying = !isPlaying;
-  syncPPIcon();
-  if (activeDwell) { isPlaying ? activeDwell.resume() : activeDwell.pause(); }
 }
 
 function restartTour() {
@@ -1203,16 +1104,26 @@ function restartTour() {
 }
 
 function _cleanupCurrent() {
+  tourId++;
   if (activeDwell) { activeDwell.cancel(); activeDwell = null; }
-  if (currentLayer && viewer.imageryLayers.contains(currentLayer)) {
-    viewer.imageryLayers.remove(currentLayer, true);
-    currentLayer = null;
-  }
   hidePanels();
   try { viewer.camera.cancelFlight(); } catch(e) {}
   document.getElementById('tourComplete').classList.remove('show');
   isPlaying = true;
   syncPPIcon();
+}
+
+function syncPPIcon() {
+  const btn = document.getElementById('btnPP');
+  document.getElementById('icoPlay').style.display  = isPlaying ? 'none'  : 'block';
+  document.getElementById('icoPause').style.display = isPlaying ? 'block' : 'none';
+  btn.classList.toggle('paused', !isPlaying);
+}
+
+function togglePP() {
+  isPlaying = !isPlaying;
+  syncPPIcon();
+  if (activeDwell) { isPlaying ? activeDwell.resume() : activeDwell.pause(); }
 }
 
 // ============================================================
