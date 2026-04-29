@@ -1,0 +1,986 @@
+<!--
+====================================================================
+  KITE — Earth Observation Tour  |  earth-tour.html
+====================================================================
+
+  QUICK START
+  -----------
+  1. Open this file in a text editor
+  2. Token is already set — open directly in Chrome or Firefox
+
+  IMAGE FILES  (all in same folder as this HTML)
+  -----------------------------------------------
+  Ramsay Newzeland.jpeg   → Location 1 · Ramsay, New Zealand
+  Crater.jpeg             → Location 2 · Crater Lake, Oregon
+  Fonte Boa.jpeg          → Location 3 · Fonte Boa, Amazonas
+  Bibio River.jpeg        → Location 4 · Bíobío River, Chile
+  Yukon delta.jpeg        → Location 5 · Yukon Delta, Alaska
+  Liwa.jpeg               → Location 6 · Liwa, UAE
+  Kironsky.jpeg           → Location 7 · Khorinsky District, Russia
+  Lake Gukamez.jpeg       → Location 8 · Lake Guakhmaz, Azerbaijan
+
+  KEYBOARD CONTROLS
+  -----------------
+  Space  → Pause / Play
+  →      → Next location
+  ←      → Previous location
+  R      → Restart tour
+
+  TUNING (constants at top of <script>)
+  --------------------------------------
+  IMAGE_PADDING_DEGREES   Size of Landsat drape on globe.
+                          Default 0.15° ≈ 15 km half-width.
+                          Increase to 0.5–1.5 if images look too small.
+  DWELL_SECONDS           Time spent at each location (default 8).
+  APPROACH_ALTITUDE_KM    High flyover altitude before zooming in (default 800).
+  OBSERVATION_ALTITUDE_KM Close observation altitude (default 35).
+====================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KITE — Earth Observation Tour</title>
+<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── Variables ── */
+:root {
+  --bg:      #050810;
+  --panel:   rgba(5,12,28,0.88);
+  --accent:  #00D4FF;
+  --accent2: #FF6B35;
+  --text:    #E8F4FD;
+  --muted:   #6B8BA4;
+  --border:  rgba(0,212,255,0.22);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
+  font-family:'Space Mono',monospace; overflow:hidden; }
+
+/* ── Globe container ── */
+#cesiumContainer { position:absolute; inset:0; }
+
+/* Hide every default Cesium UI widget */
+.cesium-widget-credits,
+.cesium-viewer-toolbar,
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer,
+.cesium-viewer-bottom,
+.cesium-viewer-fullscreenContainer,
+.cesium-navigationHelpButton-wrapper,
+.cesium-viewer-geocoderContainer { display:none !important; }
+
+/* ── Scanline vignette ── */
+#scanlines {
+  position:fixed; inset:0; pointer-events:none; z-index:1;
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);
+}
+
+/* ═══════════════ LOADING SCREEN ═══════════════ */
+#loadingScreen {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:1000; transition:opacity 0.9s ease;
+}
+#loadingScreen.fade-out { opacity:0; pointer-events:none; }
+
+.ld-logo   { font-family:'Orbitron',sans-serif; font-size:3.5rem; font-weight:900;
+             color:var(--accent); letter-spacing:.3em; line-height:1; margin-bottom:.4rem; }
+.ld-sub    { font-family:'Orbitron',sans-serif; font-size:.55rem; color:var(--muted);
+             letter-spacing:.5em; margin-bottom:3.5rem; }
+.ld-status { font-family:'Space Mono',monospace; font-size:.68rem; color:var(--accent);
+             letter-spacing:.12em; margin-bottom:1.2rem; min-height:1.2em; }
+
+.ld-track { width:320px; height:2px; background:var(--border); position:relative; overflow:hidden; }
+.ld-fill  { height:100%; background:var(--accent); width:0%;
+            box-shadow:0 0 8px var(--accent); animation:ldScan 4s ease-in-out forwards; }
+.ld-shine { position:absolute; top:-3px; left:-50px; width:50px; height:8px;
+            background:linear-gradient(90deg,transparent,var(--accent),transparent);
+            animation:ldShine 1.4s ease-in-out infinite; }
+@keyframes ldScan  { 0%{width:0} 25%{width:35%} 55%{width:68%} 80%{width:88%} 100%{width:100%} }
+@keyframes ldShine { 0%{left:-50px} 100%{left:350px} }
+
+/* ═══════════════ TOKEN WARNING ═══════════════ */
+#tokenWarning {
+  position:fixed; inset:0; background:var(--bg);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  z-index:990; text-align:center; padding:2rem;
+}
+#tokenWarning.show { display:flex; }
+.tw-icon  { font-size:2.5rem; color:var(--accent2); margin-bottom:1.2rem; }
+.tw-title { font-family:'Orbitron',sans-serif; font-size:1.4rem; color:var(--accent2);
+            letter-spacing:.08em; margin-bottom:1rem; }
+.tw-body  { font-size:.8rem; color:var(--muted); line-height:2; max-width:520px; }
+.tw-body a { color:var(--accent); text-decoration:none; }
+.tw-code  { display:inline-block; margin-top:1.2rem; padding:.6rem 1.4rem;
+            background:rgba(0,212,255,.06); border:1px solid var(--border);
+            border-radius:3px; color:var(--accent); font-size:.75rem; }
+
+/* ═══════════════ TOP BAR ═══════════════ */
+#topBar {
+  position:fixed; top:0; left:0; right:0; height:72px;
+  background:linear-gradient(180deg,rgba(5,8,16,.92) 0%,transparent 100%);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2rem; z-index:100; pointer-events:none;
+}
+.kite-name    { font-family:'Orbitron',sans-serif; font-size:1.6rem; font-weight:900;
+                color:var(--accent); letter-spacing:.25em; line-height:1; }
+.kite-tagline { font-family:'Orbitron',sans-serif; font-size:.42rem; color:var(--muted);
+                letter-spacing:.45em; margin-top:4px; }
+#counter { font-family:'Space Mono',monospace; font-size:1rem; color:var(--text); letter-spacing:.08em; }
+#counter .cur { color:var(--accent); font-size:1.35rem; font-weight:700; }
+#counter .sep { color:var(--muted); margin:0 4px; }
+
+/* ═══════════════ PHASE BADGE (top-right) ═══════════════ */
+#phaseBadge {
+  position:fixed; top:80px; right:2rem; z-index:100; text-align:right;
+  opacity:0; transition:opacity .4s;
+}
+#phaseBadge.show { opacity:1; }
+.ph-label { font-family:'Space Mono',monospace; font-size:.55rem; color:var(--muted); letter-spacing:.12em; }
+.ph-value { font-family:'Orbitron',sans-serif; font-size:.65rem; color:var(--accent2);
+            letter-spacing:.18em; margin-top:2px; }
+
+/* ═══════════════ LOCATION PANEL (bottom-left) ═══════════════ */
+#locationPanel {
+  position:fixed; bottom:108px; left:2rem; width:350px;
+  background:var(--panel); border:1px solid var(--border); border-radius:4px;
+  padding:1.6rem 1.6rem 1.4rem; z-index:100; backdrop-filter:blur(14px);
+  transform:translateX(-110%); opacity:0;
+  transition:transform .6s cubic-bezier(.22,.61,.36,1), opacity .6s ease;
+}
+#locationPanel.show { transform:translateX(0); opacity:1; }
+
+.lp-num  { font-family:'Orbitron',sans-serif; font-size:4rem; font-weight:900;
+           color:var(--accent); opacity:.12; position:absolute; top:.8rem; right:1.2rem;
+           line-height:1; user-select:none; }
+.lp-name { font-family:'Orbitron',sans-serif; font-size:1.15rem; font-weight:700;
+           color:var(--text); letter-spacing:.04em; margin-bottom:.2rem; }
+.lp-region { font-family:'Space Mono',monospace; font-size:.64rem; color:var(--muted);
+             letter-spacing:.18em; text-transform:uppercase; margin-bottom:.9rem; }
+.lp-coords { font-family:'Space Mono',monospace; font-size:.68rem; color:var(--accent); line-height:2; }
+.lp-coords .lbl { color:var(--muted); font-size:.58rem; }
+.lp-rule { width:100%; height:1px;
+           background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.1),transparent);
+           margin:.95rem 0; }
+.lp-desc { font-family:'Space Mono',monospace; font-size:.62rem; color:var(--muted);
+           line-height:1.85; letter-spacing:.04em; }
+
+/* ═══════════════ IMAGE PANEL (bottom-right) ═══════════════ */
+#imagePanel {
+  position:fixed; bottom:108px; right:2rem; width:310px;
+  z-index:100; transform:translateX(110%); opacity:0;
+  transition:transform .6s cubic-bezier(.22,.61,.36,1) .08s, opacity .6s ease .08s;
+}
+#imagePanel.show { transform:translateX(0); opacity:1; }
+
+.ip-label { font-family:'Orbitron',sans-serif; font-size:.5rem; color:var(--muted);
+            letter-spacing:.38em; text-transform:uppercase; margin-bottom:.5rem; }
+.ip-card  { width:280px; border:1px solid var(--accent); border-radius:4px;
+            overflow:hidden; position:relative; background:#04080f;
+            box-shadow:0 0 18px rgba(0,212,255,.22),0 0 40px rgba(0,212,255,.07); }
+.ip-card img { width:100%; height:auto; display:none; }
+
+/* corner bracket decorations */
+.ip-card::before,
+.ip-card::after {
+  content:''; position:absolute; width:14px; height:14px; z-index:2; pointer-events:none;
+}
+.ip-card::before { top:4px; left:4px;
+  border-top:1px solid var(--accent); border-left:1px solid var(--accent); }
+.ip-card::after  { bottom:4px; right:4px;
+  border-bottom:1px solid var(--accent); border-right:1px solid var(--accent); }
+
+.ip-placeholder {
+  position:relative; min-height:170px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:.6rem;
+  background:rgba(0,212,255,.02);
+}
+.ip-placeholder-grid {
+  position:absolute; inset:0;
+  background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.ip-placeholder-txt { font-family:'Space Mono',monospace; font-size:.58rem;
+                      color:var(--muted); text-align:center; position:relative; z-index:1;
+                      white-space:pre-line; line-height:1.7; }
+.ip-meta { margin-top:.5rem; display:flex; justify-content:space-between; }
+.ip-meta-k { font-family:'Space Mono',monospace; font-size:.58rem; color:var(--muted); }
+.ip-meta-v { font-family:'Space Mono',monospace; font-size:.58rem; color:var(--accent); }
+
+/* ═══════════════ PROGRESS BAR ═══════════════ */
+#progressWrap {
+  position:fixed; bottom:60px; left:0; right:0; padding:0 2rem; z-index:100;
+}
+.prog-dots { display:flex; justify-content:space-between; margin-bottom:7px; padding:0 2px; }
+.prog-dot  { width:8px; height:8px; border-radius:50%; cursor:pointer;
+             background:rgba(107,139,164,.3); border:1px solid rgba(107,139,164,.25);
+             transition:background .35s, border-color .35s; }
+.prog-dot.visited { background:rgba(0,212,255,.35); border-color:rgba(0,212,255,.45); }
+.prog-dot.active  { background:var(--accent); border-color:var(--accent);
+                    animation:dotPulse 1.6s ease-in-out infinite; }
+@keyframes dotPulse {
+  0%,100% { box-shadow:0 0 4px rgba(0,212,255,.5); }
+  50%     { box-shadow:0 0 12px rgba(0,212,255,1),0 0 22px rgba(0,212,255,.45); }
+}
+.prog-track { height:2px; background:rgba(107,139,164,.18); border-radius:1px; overflow:hidden; }
+#progFill   { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.55));
+              border-radius:1px; box-shadow:0 0 6px var(--accent); }
+
+/* ═══════════════ CONTROLS ═══════════════ */
+#controls {
+  position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:.7rem; z-index:100;
+}
+.ctrl-btn {
+  width:40px; height:40px; border-radius:50%;
+  border:1px solid var(--border); background:var(--panel);
+  color:var(--text); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(10px);
+  transition:border-color .2s, box-shadow .2s, background .2s;
+}
+.ctrl-btn:hover { border-color:var(--accent); box-shadow:0 0 12px rgba(0,212,255,.3);
+                  background:rgba(0,212,255,.06); }
+.ctrl-btn.primary { width:48px; height:48px; border-color:var(--accent); color:var(--accent); }
+.ctrl-btn svg { width:16px; height:16px; fill:currentColor; }
+
+/* ═══════════════ TOUR COMPLETE ═══════════════ */
+#tourComplete {
+  position:fixed; inset:0; background:rgba(5,8,16,.93);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  z-index:200; backdrop-filter:blur(10px);
+}
+#tourComplete.show { display:flex; }
+.tc-eyebrow  { font-family:'Orbitron',sans-serif; font-size:.6rem; color:var(--muted);
+               letter-spacing:.55em; text-transform:uppercase; margin-bottom:.9rem; }
+.tc-heading  { font-family:'Orbitron',sans-serif; font-size:3rem; font-weight:900;
+               color:var(--accent); letter-spacing:.1em; margin-bottom:.5rem; }
+.tc-sub      { font-family:'Space Mono',monospace; font-size:.72rem; color:var(--muted);
+               margin-bottom:3rem; }
+.tc-restart  { font-family:'Orbitron',sans-serif; font-size:.7rem; letter-spacing:.22em;
+               color:var(--bg); background:var(--accent); border:none; border-radius:2px;
+               padding:.85rem 2.4rem; cursor:pointer;
+               transition:box-shadow .2s, transform .2s; }
+.tc-restart:hover { box-shadow:0 0 22px rgba(0,212,255,.55); transform:translateY(-1px); }
+</style>
+</head>
+<body>
+
+<div id="cesiumContainer"></div>
+<div id="scanlines"></div>
+
+<!-- Loading -->
+<div id="loadingScreen">
+  <div class="ld-logo">KITE</div>
+  <div class="ld-sub">Earth Observation Platform</div>
+  <div class="ld-status" id="ldStatus">INITIALIZING EARTH OBSERVATION SYSTEM...</div>
+  <div class="ld-track"><div class="ld-fill"></div><div class="ld-shine"></div></div>
+</div>
+
+<!-- Token warning -->
+<div id="tokenWarning">
+  <div class="tw-icon">&#9888;</div>
+  <div class="tw-title">CESIUM ION TOKEN REQUIRED</div>
+  <div class="tw-body">
+    This experience needs a free Cesium Ion access token to render satellite imagery and terrain.<br><br>
+    <strong>Steps:</strong><br>
+    1. Visit <a href="https://cesium.com/ion/signup" target="_blank">cesium.com/ion/signup</a> — free account<br>
+    2. Copy your default access token from the dashboard<br>
+    3. Open <code>earth-tour.html</code> in a text editor<br>
+    4. Replace the placeholder in the &lt;script&gt; section:
+    <div class="tw-code">const CESIUM_ION_TOKEN = 'PASTE_YOUR_TOKEN_HERE';</div>
+    5. Save and reload
+  </div>
+</div>
+
+<!-- Top bar -->
+<div id="topBar">
+  <div>
+    <div class="kite-name">KITE</div>
+    <div class="kite-tagline">Earth Observation Tour</div>
+  </div>
+  <div id="counter">
+    <span class="cur" id="ctrCur">01</span>
+    <span class="sep">/</span>
+    <span id="ctrTot">08</span>
+  </div>
+</div>
+
+<!-- Phase badge -->
+<div id="phaseBadge">
+  <div class="ph-label">STATUS</div>
+  <div class="ph-value" id="phaseVal">STANDBY</div>
+</div>
+
+<!-- Location info panel (bottom-left) -->
+<div id="locationPanel">
+  <div class="lp-num"  id="lpNum">01</div>
+  <div class="lp-name" id="lpName">Location</div>
+  <div class="lp-region" id="lpRegion">Region</div>
+  <div class="lp-coords">
+    <div><span class="lbl">LAT&nbsp;&nbsp;</span><span id="lpLat">—</span></div>
+    <div><span class="lbl">LON&nbsp;&nbsp;</span><span id="lpLon">—</span></div>
+  </div>
+  <div class="lp-rule"></div>
+  <div class="lp-desc" id="lpDesc">—</div>
+</div>
+
+<!-- Image panel (bottom-right) -->
+<div id="imagePanel">
+  <div class="ip-label">Landsat Imagery</div>
+  <div class="ip-card" id="ipCard">
+    <img id="ipImg" src="" alt="">
+    <div class="ip-placeholder" id="ipPH">
+      <div class="ip-placeholder-grid"></div>
+      <div class="ip-placeholder-txt" id="ipPHTxt">NO IMAGERY<br>AVAILABLE</div>
+    </div>
+  </div>
+  <div class="ip-meta">
+    <span class="ip-meta-k">SENSOR</span>
+    <span class="ip-meta-v">LANDSAT 8 OLI</span>
+  </div>
+  <div class="ip-meta" style="margin-top:3px">
+    <span class="ip-meta-k">SOURCE</span>
+    <span class="ip-meta-v">NASA / USGS</span>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div id="progressWrap">
+  <div class="prog-dots" id="progDots"></div>
+  <div class="prog-track"><div id="progFill"></div></div>
+</div>
+
+<!-- Playback controls -->
+<div id="controls">
+  <button class="ctrl-btn" id="btnPrev" title="Previous (←)">
+    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+  </button>
+  <button class="ctrl-btn primary" id="btnPP" title="Pause / Play (Space)">
+    <svg id="icoPlay"  viewBox="0 0 24 24" style="display:none"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="icoPause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+  </button>
+  <button class="ctrl-btn" id="btnNext" title="Next (→)">
+    <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+  </button>
+</div>
+
+<!-- Tour complete -->
+<div id="tourComplete">
+  <div class="tc-eyebrow">Mission Accomplished</div>
+  <div class="tc-heading">TOUR COMPLETE</div>
+  <div class="tc-sub">8 locations &nbsp;·&nbsp; 8 Landsat images &nbsp;·&nbsp; 1 planet</div>
+  <button class="tc-restart" id="btnRestart">RESTART TOUR</button>
+</div>
+
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+<script>
+// ============================================================
+// CONFIGURATION — edit these
+// ============================================================
+const CESIUM_ION_TOKEN        = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwZDMyZWMxNy01MmU2LTQ2MjUtYTIzOC0wNTZkN2VhNmFhYTYiLCJpZCI6NDI1NTAwLCJpYXQiOjE3Nzc0OTUwMDV9.-Fk9AWtWJTFHmDO5BGlN2UO6GW65EcMA3rJ9W1DZ7TY';
+const IMAGE_PADDING_DEGREES   = 0.15;   // half-width of Landsat drape box; raise to 0.5–1.5 for bigger coverage
+const APPROACH_ALTITUDE_KM    = 800;
+const OBSERVATION_ALTITUDE_KM = 35;
+const DWELL_SECONDS           = 8;
+const APPROACH_DURATION_S     = 4;
+const ZOOM_DURATION_S         = 3.5;
+
+// ============================================================
+// LOCATIONS
+// ============================================================
+const LOCATIONS = [
+  {
+    id: 1, name: 'Ramsay', region: 'New Zealand',
+    lat: -43.522056, lon: 170.831583,
+    image: 'Ramsay Newzeland.jpeg',
+    description: 'Alpine valley and glacial terrain in the Southern Alps',
+    bounds: null
+  },
+  {
+    id: 2, name: 'Crater Lake', region: 'Oregon, USA',
+    lat: 42.936111, lon: -122.101306,
+    image: 'Crater.jpeg',
+    description: 'Volcanic caldera lake formed by the collapse of Mount Mazama',
+    bounds: null
+  },
+  {
+    id: 3, name: 'Fonte Boa', region: 'Amazonas, Brazil',
+    lat: -2.441889, lon: -66.278806,
+    image: 'Fonte Boa.jpeg',
+    description: 'Amazon rainforest river meanders and floodplain oxbow lakes',
+    bounds: null
+  },
+  {
+    id: 4, name: 'Bíobío River', region: 'Chile',
+    lat: -37.267333, lon: -72.728583,
+    image: 'Bibio River.jpeg',
+    description: 'River delta and agricultural patchwork in central Chile',
+    bounds: null
+  },
+  {
+    id: 5, name: 'Yukon Delta', region: 'Alaska, USA',
+    lat: 62.554917, lon: -164.936306,
+    image: 'Yukon delta.jpeg',
+    description: 'Arctic river delta wetlands and tundra permafrost channel patterns',
+    bounds: null
+  },
+  {
+    id: 6, name: 'Liwa', region: 'United Arab Emirates',
+    lat: 23.175000, lon: 53.798000,
+    image: 'Liwa.jpeg',
+    description: "Rub' al Khali mega-dune formations in the Empty Quarter desert",
+    bounds: null
+  },
+  {
+    id: 7, name: 'Khorinsky District', region: 'Buryatia, Russia',
+    lat: 52.047333, lon: 109.780889,
+    image: 'Kironsky.jpeg',
+    description: 'Siberian boreal taiga forest and river valley terrain',
+    bounds: null
+  },
+  {
+    id: 8, name: 'Lake Guakhmaz', region: 'Azerbaijan',
+    lat: 40.664111, lon: 47.110056,
+    image: 'Lake Gukamez.jpeg',
+    description: 'Mud volcano lake formations on the Caspian lowland plains',
+    bounds: null
+  }
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let viewer            = null;
+let currentIndex      = 0;
+let isPlaying         = true;
+let tourId            = 0;          // increment to cancel running tour
+let currentLayer      = null;
+let activeDwell       = null;
+let experienceStarted = false;
+let overlaySeq        = 0;   // incremented per addOverlay call to detect stale async results
+
+// ============================================================
+// UTILITIES
+// ============================================================
+const pad2 = n => String(n).padStart(2, '0');
+
+function toDMS(deg, isLat) {
+  const abs = Math.abs(deg);
+  const d   = Math.floor(abs);
+  const mf  = (abs - d) * 60;
+  const m   = Math.floor(mf);
+  const s   = ((mf - m) * 60).toFixed(1);
+  const dir = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+  return `${d}°${pad2(m)}'${s}" ${dir}`;
+}
+
+// Aspect-correct bounding box (compensates longitude compression at high latitudes)
+function calcBounds(loc) {
+  if (loc.bounds) return loc.bounds;
+  const latPad = IMAGE_PADDING_DEGREES;
+  const lonPad = IMAGE_PADDING_DEGREES / Math.max(0.1, Math.cos(loc.lat * Math.PI / 180));
+  return { west: loc.lon - lonPad, east: loc.lon + lonPad,
+           south: loc.lat - latPad, north: loc.lat + latPad };
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ============================================================
+// DWELL TIMER  — pauseable, skippable
+// ============================================================
+class DwellTimer {
+  constructor(ms) {
+    this.total     = ms;
+    this.elapsed   = 0;
+    this.startTime = null;
+    this.resolve   = null;
+    this.rafId     = null;
+    this.alive     = false;
+    this.onTick    = null;  // (progress 0–1) callback
+  }
+
+  start() {
+    this.alive     = true;
+    this.elapsed   = 0;
+    this.startTime = Date.now();
+    return new Promise(res => { this.resolve = res; this._tick(); });
+  }
+
+  pause() {
+    if (!this.alive || this.startTime === null) return;
+    this.elapsed += Date.now() - this.startTime;
+    this.startTime = null;
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+  }
+
+  resume() {
+    if (!this.alive || this.startTime !== null || !this.resolve) return;
+    this.startTime = Date.now();
+    this._tick();
+  }
+
+  skip() {
+    this.elapsed   = this.total;
+    this.startTime = null;
+    this.alive     = false;
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+    const r = this.resolve; this.resolve = null;
+    if (r) r();
+  }
+
+  cancel() {
+    this.alive   = false;
+    this.resolve = null;
+    if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+  }
+
+  get progress() {
+    const e = this.startTime ? this.elapsed + Date.now() - this.startTime : this.elapsed;
+    return Math.min(1, e / this.total);
+  }
+
+  _tick() {
+    const p = this.progress;
+    if (this.onTick) this.onTick(p);
+    if (p >= 1) {
+      this.alive = false;
+      const r = this.resolve; this.resolve = null;
+      if (r) r();
+    } else {
+      this.rafId = requestAnimationFrame(() => this._tick());
+    }
+  }
+}
+
+// ============================================================
+// CESIUM INIT
+// ============================================================
+async function initCesium() {
+  if (!CESIUM_ION_TOKEN || CESIUM_ION_TOKEN === 'PASTE_YOUR_TOKEN_HERE') {
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('tokenWarning').classList.add('show');
+    return;
+  }
+
+  Cesium.Ion.defaultAccessToken = CESIUM_ION_TOKEN;
+
+  try {
+    // Create viewer with NO base layer — we add it explicitly below
+    // so we can try multiple API approaches and guarantee something loads
+    viewer = new Cesium.Viewer('cesiumContainer', {
+      animation:                              false,
+      baseLayerPicker:                        false,
+      fullscreenButton:                       false,
+      geocoder:                               false,
+      homeButton:                             false,
+      infoBox:                                false,
+      sceneModePicker:                        false,
+      selectionIndicator:                     false,
+      timeline:                               false,
+      navigationHelpButton:                   false,
+      navigationInstructionsInitiallyVisible: false,
+      baseLayer:                              false,   // we add manually below
+    });
+
+    viewer.scene.globe.maximumScreenSpaceError = 2;
+    viewer.scene.globe.enableLighting          = true;
+    viewer.scene.fog.enabled                   = false;
+    viewer.scene.globe.showGroundAtmosphere    = true;
+    viewer.scene.skyAtmosphere.show            = true;
+
+    // Add satellite imagery — four fallbacks in case any API is unavailable
+    await addBaseImagery();
+
+    buildDots();
+    document.getElementById('ldStatus').textContent = 'LOADING SATELLITE TILES...';
+
+    viewer.scene.globe.tileLoadProgressEvent.addEventListener(remaining => {
+      if (remaining === 0 && !experienceStarted) {
+        document.getElementById('ldStatus').textContent = 'SYSTEMS ONLINE';
+        setTimeout(beginExperience, 600);
+      }
+    });
+
+    setTimeout(() => { if (!experienceStarted) beginExperience(); }, 8000);
+
+  } catch (err) {
+    console.error('Cesium init error:', err);
+    document.getElementById('ldStatus').textContent = 'ERROR: ' + err.message;
+  }
+}
+
+// Try every known CesiumJS API variant until satellite imagery loads.
+// Different CesiumJS 1.x versions deprecated/removed different constructors.
+async function addBaseImagery() {
+  const attempts = [
+    // 1. Preferred (CesiumJS 1.104+)
+    async () => {
+      const p = await Cesium.createWorldImageryAsync();
+      viewer.imageryLayers.add(new Cesium.ImageryLayer(p), 0);
+    },
+    // 2. Explicit Ion asset (CesiumJS 1.104+)
+    async () => {
+      const p = await Cesium.IonImageryProvider.fromAssetId(2);
+      viewer.imageryLayers.add(new Cesium.ImageryLayer(p), 0);
+    },
+    // 3. Deprecated sync constructor (still present in many 1.1xx builds)
+    async () => {
+      const p = new Cesium.IonImageryProvider({ assetId: 2 });
+      viewer.imageryLayers.add(new Cesium.ImageryLayer(p), 0);
+    },
+    // 4. ArcGIS World Imagery — free satellite tiles, no Ion token required
+    async () => {
+      const url = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer';
+      const p = Cesium.ArcGisMapServerImageryProvider.fromUrl
+        ? await Cesium.ArcGisMapServerImageryProvider.fromUrl(url)
+        : new Cesium.ArcGisMapServerImageryProvider({ url });
+      viewer.imageryLayers.add(new Cesium.ImageryLayer(p), 0);
+    },
+  ];
+
+  for (const fn of attempts) {
+    try {
+      await fn();
+      return; // success — stop trying
+    } catch (e) {
+      console.warn('Imagery attempt failed, trying next:', e.message || e);
+    }
+  }
+  console.error('All base imagery attempts failed — globe will appear dark');
+}
+
+function beginExperience() {
+  if (experienceStarted) return;
+  experienceStarted = true;
+
+  const ls = document.getElementById('loadingScreen');
+  ls.classList.add('fade-out');
+  setTimeout(() => ls.style.display = 'none', 950);
+
+  // Initial Earth view
+  viewer.camera.setView({
+    destination: Cesium.Cartesian3.fromDegrees(20, 15, 22000000),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 }
+  });
+
+  document.getElementById('phaseBadge').classList.add('show');
+
+  // Brief intro rotation then start tour
+  let frames = 0;
+  const introRot = () => {
+    frames++;
+    viewer.camera.rotateRight(0.0018);
+    if (frames < 90) requestAnimationFrame(introRot); // ~3s @ 30fps
+    else startTour(0);
+  };
+  requestAnimationFrame(introRot);
+}
+
+// ============================================================
+// TOUR ENGINE
+// ============================================================
+async function startTour(startIdx) {
+  document.getElementById('tourComplete').classList.remove('show');
+  isPlaying = true;
+  syncPPIcon();
+
+  const myId = ++tourId;
+
+  for (let i = startIdx; i < LOCATIONS.length; i++) {
+    if (myId !== tourId) return;
+
+    currentIndex = i;
+    updateCounter(i);
+    updateDots(i);
+    setPhase('APPROACH');
+
+    const loc = LOCATIONS[i];
+
+    // — Phase 1: high approach
+    await flyTo(
+      loc.lon, loc.lat, APPROACH_ALTITUDE_KM * 1000,
+      -90, APPROACH_DURATION_S, null
+    );
+    if (myId !== tourId) return;
+
+    setPhase('DESCENDING');
+
+    // — Phase 2: zoom in
+    await flyTo(
+      loc.lon, loc.lat, OBSERVATION_ALTITUDE_KM * 1000,
+      -75, ZOOM_DURATION_S, Cesium.EasingFunction.CUBIC_IN_OUT
+    );
+    if (myId !== tourId) return;
+
+    setPhase('OBSERVING');
+
+    // Add Landsat overlay (non-blocking, fire-and-forget add)
+    addOverlay(loc);
+
+    // Show panels
+    showPanels(loc);
+
+    // — Phase 3: dwell
+    if (activeDwell) activeDwell.cancel();
+    activeDwell = new DwellTimer(DWELL_SECONDS * 1000);
+    activeDwell.onTick = p => updateProgress(i, p);
+    if (!isPlaying) activeDwell.pause();
+
+    await activeDwell.start();
+    activeDwell = null;
+    if (myId !== tourId) return;
+
+    // Depart
+    setPhase('DEPARTING');
+    hidePanels();
+    await fadeOutOverlay();
+    if (myId !== tourId) return;
+
+    await delay(400);
+    if (myId !== tourId) return;
+  }
+
+  // Tour complete
+  if (myId === tourId) {
+    setPhase('COMPLETE');
+    await flyTo(0, 15, 22000000, -90, 5, null);
+    document.getElementById('tourComplete').classList.add('show');
+  }
+}
+
+// ============================================================
+// FLIGHT
+// ============================================================
+function flyTo(lon, lat, altM, pitchDeg, durS, easingFn) {
+  return new Promise(res => {
+    try {
+      const opts = {
+        destination:  Cesium.Cartesian3.fromDegrees(lon, lat, altM),
+        orientation:  { heading: Cesium.Math.toRadians(0),
+                        pitch:   Cesium.Math.toRadians(pitchDeg), roll: 0 },
+        duration:     durS,
+        complete:     res,
+        cancel:       res
+      };
+      if (easingFn) opts.easingFunction = easingFn;
+      viewer.camera.flyTo(opts);
+    } catch (e) { console.warn('flyTo error:', e); res(); }
+  });
+}
+
+// ============================================================
+// IMAGERY LAYER MANAGER
+// ============================================================
+async function addOverlay(loc) {
+  // Remove any previous layer synchronously
+  if (currentLayer) {
+    if (viewer.imageryLayers.contains(currentLayer))
+      viewer.imageryLayers.remove(currentLayer, true);
+    currentLayer = null;
+  }
+
+  const mySeq = ++overlaySeq;
+  const b     = calcBounds(loc);
+  const rect  = Cesium.Rectangle.fromDegrees(b.west, b.south, b.east, b.north);
+
+  try {
+    let provider;
+    if (typeof Cesium.SingleTileImageryProvider.fromUrl === 'function') {
+      provider = await Cesium.SingleTileImageryProvider.fromUrl(loc.image, { rectangle: rect });
+    } else {
+      provider = new Cesium.SingleTileImageryProvider({ url: loc.image, rectangle: rect });
+    }
+
+    // If tour has advanced (overlaySeq changed) while we were awaiting, discard
+    if (mySeq !== overlaySeq) return;
+
+    // Use new ImageryLayer API (CesiumJS 1.104+); fall back to deprecated helper
+    let layer;
+    try {
+      layer = new Cesium.ImageryLayer(provider);
+      viewer.imageryLayers.add(layer);
+    } catch (_) {
+      layer = viewer.imageryLayers.addImageryProvider(provider);
+    }
+    layer.alpha  = 0;
+    currentLayer = layer;
+    animateAlpha(layer, 0, 1, 1400);
+  } catch (e) {
+    console.warn(`Image load skipped for "${loc.name}":`, e.message || e);
+  }
+}
+
+function fadeOutOverlay() {
+  if (!currentLayer) return Promise.resolve();
+  const layer = currentLayer;
+  currentLayer = null;
+  return animateAlpha(layer, layer.alpha, 0, 700).then(() => {
+    if (viewer.imageryLayers.contains(layer))
+      viewer.imageryLayers.remove(layer, true);
+  });
+}
+
+function animateAlpha(layer, from, to, ms) {
+  return new Promise(res => {
+    const t0 = Date.now();
+    const tick = () => {
+      if (!viewer.imageryLayers.contains(layer)) { res(); return; }
+      const t = Math.min(1, (Date.now() - t0) / ms);
+      // ease-in-out quad
+      const e = t < .5 ? 2*t*t : -1 + (4 - 2*t)*t;
+      layer.alpha = from + (to - from) * e;
+      if (t >= 1) res();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
+// ============================================================
+// UI CONTROLLER
+// ============================================================
+function showPanels(loc) {
+  document.getElementById('lpNum').textContent    = pad2(loc.id);
+  document.getElementById('lpName').textContent   = loc.name;
+  document.getElementById('lpRegion').textContent = loc.region;
+  document.getElementById('lpLat').textContent    =
+    `${loc.lat.toFixed(6)}°  (${toDMS(loc.lat, true)})`;
+  document.getElementById('lpLon').textContent    =
+    `${loc.lon.toFixed(6)}°  (${toDMS(loc.lon, false)})`;
+  document.getElementById('lpDesc').textContent   = loc.description;
+
+  // Image card
+  const img = document.getElementById('ipImg');
+  const ph  = document.getElementById('ipPH');
+  img.style.display = 'none';
+  ph.style.display  = 'flex';
+  document.getElementById('ipPHTxt').textContent =
+    `${loc.lat.toFixed(4)}°\n${loc.lon.toFixed(4)}°`;
+
+  img.onload  = () => { img.style.display = 'block'; ph.style.display = 'none'; };
+  img.onerror = () => { img.style.display = 'none';  ph.style.display = 'flex'; };
+  img.src = loc.image;
+
+  document.getElementById('locationPanel').classList.add('show');
+  document.getElementById('imagePanel').classList.add('show');
+}
+
+function hidePanels() {
+  document.getElementById('locationPanel').classList.remove('show');
+  document.getElementById('imagePanel').classList.remove('show');
+}
+
+function updateCounter(i) {
+  document.getElementById('ctrCur').textContent = pad2(i + 1);
+}
+
+function buildDots() {
+  const wrap = document.getElementById('progDots');
+  wrap.innerHTML = '';
+  LOCATIONS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className    = 'prog-dot';
+    d.title        = LOCATIONS[i].name;
+    d.dataset.idx  = i;
+    d.addEventListener('click', () => jumpTo(i));
+    wrap.appendChild(d);
+  });
+}
+
+function updateDots(active) {
+  document.querySelectorAll('.prog-dot').forEach((d, i) => {
+    d.classList.toggle('visited', i < active);
+    d.classList.toggle('active',  i === active);
+  });
+}
+
+function updateProgress(locIdx, p) {
+  const total = (locIdx + p) / LOCATIONS.length;
+  document.getElementById('progFill').style.width = (total * 100) + '%';
+}
+
+function setPhase(txt) {
+  document.getElementById('phaseVal').textContent = txt;
+}
+
+function syncPPIcon() {
+  document.getElementById('icoPlay').style.display  = isPlaying ? 'none'  : 'block';
+  document.getElementById('icoPause').style.display = isPlaying ? 'block' : 'none';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function jumpTo(idx) {
+  if (idx < 0 || idx >= LOCATIONS.length) return;
+  _cleanupCurrent();
+  startTour(idx);
+}
+
+function togglePP() {
+  isPlaying = !isPlaying;
+  syncPPIcon();
+  if (activeDwell) { isPlaying ? activeDwell.resume() : activeDwell.pause(); }
+}
+
+function restartTour() {
+  _cleanupCurrent();
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(20, 15, 22000000),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+    duration: 2,
+    complete: () => startTour(0)
+  });
+}
+
+function _cleanupCurrent() {
+  if (activeDwell) { activeDwell.cancel(); activeDwell = null; }
+  if (currentLayer && viewer.imageryLayers.contains(currentLayer)) {
+    viewer.imageryLayers.remove(currentLayer, true);
+    currentLayer = null;
+  }
+  hidePanels();
+  try { viewer.camera.cancelFlight(); } catch(e) {}
+  document.getElementById('tourComplete').classList.remove('show');
+  isPlaying = true;
+  syncPPIcon();
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+document.getElementById('btnPrev').addEventListener('click', () =>
+  jumpTo(Math.max(0, currentIndex - 1)));
+
+document.getElementById('btnNext').addEventListener('click', () =>
+  jumpTo(Math.min(LOCATIONS.length - 1, currentIndex + 1)));
+
+document.getElementById('btnPP').addEventListener('click', togglePP);
+document.getElementById('btnRestart').addEventListener('click', restartTour);
+
+document.addEventListener('keydown', e => {
+  switch (e.code) {
+    case 'Space':      e.preventDefault(); togglePP(); break;
+    case 'ArrowRight': e.preventDefault(); jumpTo(Math.min(LOCATIONS.length-1, currentIndex+1)); break;
+    case 'ArrowLeft':  e.preventDefault(); jumpTo(Math.max(0, currentIndex-1)); break;
+    case 'KeyR':       e.preventDefault(); restartTour(); break;
+  }
+});
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener('load', initCesium);
+</script>
+</body>
+</html>
