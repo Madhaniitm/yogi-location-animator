@@ -149,90 +149,71 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 .ph-value { font-family:'Orbitron',sans-serif; font-size:.62rem; color:var(--accent2);
             letter-spacing:.15em; margin-top:2px; }
 
-/* ═══════════════ BOTTOM UI WRAPPER ═══════════════ */
-/* Desktop: two separate panels. Mobile: side-by-side compact row */
-#bottomUI {
-  position:fixed; left:0; right:0; bottom:82px;
-  display:flex; align-items:flex-end; justify-content:space-between;
-  padding:0 clamp(.5rem,2vw,2rem); gap:.75rem; z-index:100;
+/* ═══════════════ INFO PANEL (top, compact) ═══════════════ */
+#infoPanel {
+  position:fixed;
+  top:clamp(54px,8.2vw,74px);     /* sits just below topBar */
+  left:clamp(.6rem,2vw,1.4rem);
+  right:clamp(.6rem,2vw,1.4rem);
+  display:flex; align-items:center; gap:clamp(.5rem,1.5vw,.9rem);
+  background:rgba(5,12,28,0.82); border:1px solid var(--border); border-radius:6px;
+  padding:clamp(.4rem,1vw,.65rem) clamp(.6rem,1.5vw,1rem);
+  backdrop-filter:blur(14px); pointer-events:auto; z-index:100;
+  transform:translateY(-110%); opacity:0;
+  transition:transform .5s cubic-bezier(.22,.61,.36,1), opacity .5s ease;
+}
+#infoPanel.show { transform:translateY(0); opacity:1; }
+
+/* Thumbnail — stretches to full panel height, full image visible */
+#ipThumb {
+  flex-shrink:0;
+  align-self:stretch;
+  width:clamp(72px,13vw,115px);
+  min-height:clamp(46px,8vw,72px);
+  border:1px solid var(--accent); border-radius:3px;
+  overflow:hidden; background:#04080f;
+  box-shadow:0 0 10px rgba(0,212,255,.2);
+  display:flex; align-items:center; justify-content:center;
+}
+#ipThumb img { width:100%; height:100%; object-fit:contain; display:block; }
+
+/* Text area */
+#ipText { flex:1; min-width:0; }
+.ipt-header {
+  display:flex; align-items:baseline; gap:.45rem; flex-wrap:wrap;
+  margin-bottom:clamp(.15rem,.4vw,.3rem);
+}
+.ipt-letter { font-family:'Orbitron',sans-serif;
+              font-size:clamp(1.1rem,3vw,1.6rem); font-weight:900;
+              color:var(--accent); line-height:1;
+              text-shadow:0 0 14px rgba(0,212,255,.7); }
+.ipt-name   { font-family:'Orbitron',sans-serif;
+              font-size:clamp(.75rem,1.8vw,.9rem); font-weight:700;
+              color:var(--text); letter-spacing:.04em; }
+.ipt-sep    { color:rgba(0,212,255,.35); font-size:.8em; }
+.ipt-region { font-family:'Space Mono',monospace;
+              font-size:clamp(.58rem,1.1vw,.65rem);
+              color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
+.ipt-desc   { font-family:'Space Mono',monospace;
+              font-size:clamp(.6rem,1.15vw,.68rem);
+              color:var(--text); line-height:1.55;
+              overflow:hidden; display:-webkit-box;
+              -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+/* ═══════════════ BOTTOM BAR (progress + controls) ═══════════════ */
+#bottomBar {
+  position:fixed; bottom:0; left:0; right:0; z-index:100;
+  display:flex; flex-direction:column; align-items:center;
+  gap:8px;
+  padding:0 clamp(.8rem,3vw,2rem) clamp(10px,2.5vw,16px);
+  background:linear-gradient(transparent, rgba(5,8,16,.60) 30%);
   pointer-events:none;
 }
 
-/* ═══════════════ LOCATION PANEL ═══════════════ */
-#locationPanel {
-  flex:1 1 0; min-width:0; max-width:360px;
-  background:var(--panel); border:1px solid var(--border); border-radius:4px;
-  padding:clamp(.9rem,2.5vw,1.6rem) clamp(.9rem,2.5vw,1.6rem) clamp(.8rem,2vw,1.4rem);
-  backdrop-filter:blur(16px); pointer-events:auto;
-  transform:translateY(110%); opacity:0;
-  transition:transform .55s cubic-bezier(.22,.61,.36,1), opacity .55s ease;
-}
-#locationPanel.show { transform:translateY(0); opacity:1; }
-
-.lp-num    { font-family:'Orbitron',sans-serif; font-size:clamp(2.2rem,6vw,4rem);
-             font-weight:900; color:var(--accent); opacity:.12;
-             position:absolute; top:.6rem; right:1rem; line-height:1; user-select:none; }
-.lp-name   { font-family:'Orbitron',sans-serif;
-             font-size:clamp(.8rem,2.8vw,1.15rem); font-weight:700;
-             color:var(--text); letter-spacing:.04em; margin-bottom:.2rem; }
-.lp-region { font-family:'Space Mono',monospace; font-size:clamp(.52rem,1.5vw,.64rem);
-             color:var(--muted); letter-spacing:.15em; text-transform:uppercase; margin-bottom:.75rem; }
-.lp-coords { font-family:'Space Mono',monospace; font-size:clamp(.52rem,1.4vw,.68rem);
-             color:var(--accent); line-height:1.9; }
-.lp-coords .lbl { color:var(--muted); font-size:.56rem; }
-.lp-rule   { width:100%; height:1px;
-             background:linear-gradient(90deg,var(--accent),rgba(0,212,255,.1),transparent);
-             margin:.8rem 0; }
-.lp-desc   { font-family:'Space Mono',monospace; font-size:clamp(.54rem,1.3vw,.62rem);
-             color:var(--text); line-height:1.8; letter-spacing:.03em; }
-
-/* ═══════════════ IMAGE PANEL ═══════════════ */
-#imagePanel {
-  flex:0 0 auto; width:min(42vw,360px);
-  pointer-events:auto;
-  transform:translateY(110%); opacity:0;
-  transition:transform .55s cubic-bezier(.22,.61,.36,1) .07s, opacity .55s ease .07s;
-}
-#imagePanel.show { transform:translateY(0); opacity:1; }
-
-.ip-label { font-family:'Orbitron',sans-serif; font-size:clamp(.38rem,.8vw,.5rem);
-            color:var(--muted); letter-spacing:.3em; text-transform:uppercase; margin-bottom:.4rem; }
-.ip-card  { width:100%; border:1px solid var(--accent); border-radius:4px;
-            overflow:hidden; position:relative; background:#04080f;
-            box-shadow:0 0 16px rgba(0,212,255,.2),0 0 36px rgba(0,212,255,.06); }
-.ip-card img { width:100%; height:auto; display:block; }
-.ip-card img[style*="display:none"] { display:none !important; }
-
-/* Corner bracket decorations */
-.ip-card::before, .ip-card::after {
-  content:''; position:absolute; width:12px; height:12px; z-index:2; pointer-events:none;
-}
-.ip-card::before { top:4px; left:4px;
-  border-top:1px solid var(--accent); border-left:1px solid var(--accent); }
-.ip-card::after  { bottom:4px; right:4px;
-  border-bottom:1px solid var(--accent); border-right:1px solid var(--accent); }
-
-.ip-placeholder { position:relative; min-height:clamp(80px,14vw,160px);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:.5rem; background:rgba(0,212,255,.02); }
-.ip-placeholder-grid {
-  position:absolute; inset:0;
-  background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);
-  background-size:24px 24px;
-}
-.ip-placeholder-txt { font-family:'Space Mono',monospace; font-size:.54rem;
-  color:var(--muted); text-align:center; position:relative; z-index:1;
-  white-space:pre-line; line-height:1.6; }
-.ip-meta   { margin-top:.4rem; display:flex; justify-content:space-between; gap:.3rem; }
-.ip-meta-k { font-family:'Space Mono',monospace; font-size:clamp(.44rem,1vw,.58rem); color:var(--muted); }
-.ip-meta-v { font-family:'Space Mono',monospace; font-size:clamp(.44rem,1vw,.58rem); color:var(--accent); }
-
 /* ═══════════════ PROGRESS BAR ═══════════════ */
-#progressWrap { position:fixed; bottom:clamp(50px,8vw,60px); left:0; right:0;
-                padding:0 clamp(.5rem,2vw,2rem); z-index:100; }
+#progressWrap { width:100%; pointer-events:auto; }
 .prog-dots { display:flex; justify-content:space-between; margin-bottom:6px; padding:0 2px; }
-.prog-dot  { width:clamp(8px,2vw,10px); height:clamp(8px,2vw,10px); border-radius:50%;
+.prog-dot  { width:clamp(9px,2.4vw,12px); height:clamp(9px,2.4vw,12px); border-radius:50%;
              cursor:pointer; touch-action:manipulation;
              background:rgba(107,139,164,.3); border:1px solid rgba(107,139,164,.25);
              transition:background .3s, border-color .3s; }
@@ -250,12 +231,11 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 
 /* ═══════════════ CONTROLS ═══════════════ */
 #controls {
-  position:fixed; bottom:clamp(10px,2.5vw,16px); left:50%; transform:translateX(-50%);
-  display:flex; align-items:center; gap:clamp(1rem,4vw,2rem); z-index:100;
-  white-space:nowrap;
+  display:flex; align-items:center; gap:clamp(.9rem,4vw,1.8rem);
+  pointer-events:auto;
 }
 .ctrl-btn {
-  width:clamp(40px,10vw,44px); height:clamp(40px,10vw,44px); border-radius:50%;
+  width:44px; height:44px; border-radius:50%;
   border:1px solid var(--border); background:var(--panel);
   color:var(--text); cursor:pointer; touch-action:manipulation;
   display:flex; align-items:center; justify-content:center;
@@ -267,12 +247,12 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
   border-color:var(--accent); box-shadow:0 0 12px rgba(0,212,255,.3);
   background:rgba(0,212,255,.08);
 }
-.ctrl-btn.primary { width:clamp(46px,12vw,52px); height:clamp(46px,12vw,52px);
+.ctrl-btn.primary { width:52px; height:52px;
                     border-color:var(--accent); color:var(--accent);
                     box-shadow:0 0 10px rgba(0,212,255,.25); }
 .ctrl-btn.primary.paused { border-color:var(--accent2); color:var(--accent2);
                            box-shadow:0 0 14px rgba(255,107,53,.4); }
-.ctrl-btn svg { width:clamp(14px,3.5vw,18px); height:clamp(14px,3.5vw,18px); fill:currentColor; }
+.ctrl-btn svg { width:18px; height:18px; fill:currentColor; }
 
 /* ═══════════════ TOUR COMPLETE ═══════════════ */
 #tourComplete {
@@ -295,44 +275,14 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
 
 /* ═══════════════ MOBILE OVERRIDES ( ≤ 600px ) ═══════════════ */
 @media (max-width: 600px) {
-  /* Shrink tagline on mobile; hide phase badge */
-  .kite-tagline { font-size:clamp(.28rem,.65vw,.36rem); letter-spacing:.25em; }
+  .kite-tagline { font-size:.5rem; letter-spacing:.22em; }
   #phaseBadge   { display:none; }
 
-  /* Stack panels full-width when screen is narrow */
-  #bottomUI {
-    flex-direction:column-reverse;
-    align-items:stretch;
-    bottom:78px;
-    gap:.5rem;
-  }
+  /* Tighter info panel thumbnail */
+  #ipThumb { width:58px; height:42px; }
 
-  #locationPanel { max-width:100%; }
-
-  #imagePanel {
-    width:100%;
-    display:flex; flex-direction:column; align-items:stretch; gap:.4rem;
-  }
-
-  .ip-label { display:none; }
-
-  /* Full-width image card on mobile */
-  .ip-card { width:100%; flex-shrink:0; }
-
-  /* Meta row below image */
-  .ip-meta-wrap { display:flex; flex-direction:column; gap:.3rem; }
-  .ip-meta      { margin-top:.3rem; flex-direction:row; flex-wrap:wrap; gap:.3rem; }
-
-  /* Tighten location panel */
-  .lp-coords { line-height:1.7; }
-  .lp-rule   { margin:.6rem 0; }
-
-  /* Bigger progress dots for touch */
-  .prog-dot { width:12px; height:12px; }
-}
-
-@media (max-width: 400px) {
-  .lp-coords { display:none; }
+  /* Slightly more bottom padding for controls */
+  #bottomBar { padding-bottom:12px; }
 }
 
 /* ═══════════════ LETTER REVEAL OVERLAY ═══════════════ */
@@ -353,20 +303,6 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
                        0 0 160px rgba(0,212,255,.25); }
 .lr-loc  { font-family:'Space Mono',monospace; font-size:clamp(.5rem,1.3vw,.7rem);
            color:var(--muted); letter-spacing:.2em; margin-top:.6rem; }
-
-/* ═══════════════ LETTER ON LOCATION PANEL ═══════════════ */
-.lp-letter-row { display:flex; align-items:center; gap:.8rem; margin-bottom:.5rem; }
-.lp-letter-badge {
-  font-family:'Orbitron',sans-serif; font-size:clamp(2rem,5vw,3rem); font-weight:900;
-  color:var(--accent); line-height:1;
-  text-shadow:0 0 16px rgba(0,212,255,.7);
-  flex-shrink:0;
-}
-.lp-letter-hint {
-  font-family:'Space Mono',monospace; font-size:clamp(.48rem,1.1vw,.58rem);
-  color:var(--muted); line-height:1.6;
-}
-.lp-letter-hint strong { color:var(--accent2); display:block; font-size:clamp(.55rem,1.3vw,.65rem); }
 
 /* ═══════════════ BIRTHDAY END SCREEN ═══════════════ */
 #tourComplete {
@@ -483,71 +419,40 @@ html, body { width:100%; height:100%; background:var(--bg); color:var(--text);
   <div class="lr-loc"  id="lrLoc">Ramsay, New Zealand</div>
 </div>
 
-<!-- Both info panels sit inside a shared bottom row -->
-<div id="bottomUI">
-
-  <!-- Location info panel -->
-  <div id="locationPanel">
-    <div class="lp-num" id="lpNum">01</div>
-    <div class="lp-letter-row">
-      <div class="lp-letter-badge" id="lpLetterBadge">Y</div>
-      <div class="lp-letter-hint">
-        <strong id="lpLetterHint">Resembles the letter Y</strong>
-        <span id="lpLetterSub">as seen from space</span>
-      </div>
-    </div>
-    <div class="lp-name"   id="lpName">Location</div>
-    <div class="lp-region" id="lpRegion">Region</div>
-    <div class="lp-coords">
-      <div><span class="lbl">LAT&nbsp;&nbsp;</span><span id="lpLat">—</span></div>
-      <div><span class="lbl">LON&nbsp;&nbsp;</span><span id="lpLon">—</span></div>
-    </div>
-    <div class="lp-rule"></div>
-    <div class="lp-desc" id="lpDesc">—</div>
+<!-- Compact info panel — top of screen -->
+<div id="infoPanel">
+  <div id="ipThumb">
+    <img id="ipThumbImg" src="" alt="">
   </div>
-
-  <!-- Image panel -->
-  <div id="imagePanel">
-    <div class="ip-label">Landsat Imagery</div>
-    <div class="ip-card" id="ipCard">
-      <img id="ipImg" src="" alt="" style="display:none">
-      <div class="ip-placeholder" id="ipPH">
-        <div class="ip-placeholder-grid"></div>
-        <div class="ip-placeholder-txt" id="ipPHTxt">NO IMAGERY<br>AVAILABLE</div>
-      </div>
+  <div id="ipText">
+    <div class="ipt-header">
+      <span class="ipt-letter" id="iptLetter">Y</span>
+      <span class="ipt-name"   id="iptName">Ramsay</span>
+      <span class="ipt-sep">·</span>
+      <span class="ipt-region" id="iptRegion">New Zealand</span>
     </div>
-    <div class="ip-meta-wrap">
-      <div class="ip-meta">
-        <span class="ip-meta-k">SENSOR</span>
-        <span class="ip-meta-v">LANDSAT 8 OLI</span>
-      </div>
-      <div class="ip-meta" style="margin-top:3px">
-        <span class="ip-meta-k">SOURCE</span>
-        <span class="ip-meta-v">NASA / USGS</span>
-      </div>
-    </div>
+    <div class="ipt-desc" id="iptDesc">Valley branches fork apart like a Y written by glaciers in the Southern Alps</div>
   </div>
-
 </div>
 
-<!-- Progress bar -->
-<div id="progressWrap">
-  <div class="prog-dots" id="progDots"></div>
-  <div class="prog-track"><div id="progFill"></div></div>
-</div>
-
-<!-- Playback controls -->
-<div id="controls">
-  <button class="ctrl-btn" id="btnPrev" title="Previous (←)">
-    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-  </button>
-  <button class="ctrl-btn primary" id="btnPP" title="Pause / Play (Space)">
-    <svg id="icoPlay"  viewBox="0 0 24 24" style="display:none"><path d="M8 5v14l11-7z"/></svg>
-    <svg id="icoPause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-  </button>
-  <button class="ctrl-btn" id="btnNext" title="Next (→)">
-    <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-  </button>
+<!-- Bottom bar: progress + controls stacked -->
+<div id="bottomBar">
+  <div id="progressWrap">
+    <div class="prog-dots" id="progDots"></div>
+    <div class="prog-track"><div id="progFill"></div></div>
+  </div>
+  <div id="controls">
+    <button class="ctrl-btn" id="btnPrev" title="Previous (←)">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
+    <button class="ctrl-btn primary" id="btnPP" title="Pause / Play (Space)">
+      <svg id="icoPlay"  viewBox="0 0 24 24" style="display:none"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="icoPause" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
+    <button class="ctrl-btn" id="btnNext" title="Next (→)">
+      <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+    </button>
+  </div>
 </div>
 
 <!-- Birthday finale screen -->
@@ -689,11 +594,14 @@ class DwellTimer {
     this.onTick    = null;  // (progress 0–1) callback
   }
 
-  start() {
+  start(startPaused = false) {
     this.alive     = true;
     this.elapsed   = 0;
-    this.startTime = Date.now();
-    return new Promise(res => { this.resolve = res; this._tick(); });
+    this.startTime = startPaused ? null : Date.now();
+    return new Promise(res => {
+      this.resolve = res;
+      if (!startPaused) this._tick();
+    });
   }
 
   pause() {
@@ -916,9 +824,8 @@ async function startTour(startIdx) {
     if (activeDwell) activeDwell.cancel();
     activeDwell = new DwellTimer(DWELL_SECONDS * 1000);
     activeDwell.onTick = p => updateProgress(i, p);
-    if (!isPlaying) activeDwell.pause();
 
-    await activeDwell.start();
+    await activeDwell.start(!isPlaying);  // starts paused if user already hit pause
     activeDwell = null;
     if (myId !== tourId) return;
 
@@ -968,41 +875,23 @@ function flyTo(lon, lat, altM, pitchDeg, durS, easingFn) {
 // UI CONTROLLER
 // ============================================================
 function showPanels(loc) {
-  // Location info
-  document.getElementById('lpNum').textContent        = pad2(loc.id);
-  document.getElementById('lpName').textContent       = loc.name;
-  document.getElementById('lpRegion').textContent     = loc.region;
-  document.getElementById('lpLat').textContent        = `${loc.lat.toFixed(6)}°  (${toDMS(loc.lat, true)})`;
-  document.getElementById('lpLon').textContent        = `${loc.lon.toFixed(6)}°  (${toDMS(loc.lon, false)})`;
-  document.getElementById('lpDesc').textContent       = loc.description;
+  document.getElementById('iptLetter').textContent = loc.letter;
+  document.getElementById('iptName').textContent   = loc.name;
+  document.getElementById('iptRegion').textContent = loc.region;
+  document.getElementById('iptDesc').textContent   = loc.description;
 
-  // Letter badge on panel
-  document.getElementById('lpLetterBadge').textContent = loc.letter;
-  document.getElementById('lpLetterHint').textContent   = `Resembles the letter ${loc.letter}`;
-  document.getElementById('lpLetterSub').textContent    = 'as seen from space';
-
-  // Image card
-  const img = document.getElementById('ipImg');
-  const ph  = document.getElementById('ipPH');
-  img.style.display = 'none';
-  ph.style.display  = 'flex';
-  document.getElementById('ipPHTxt').textContent = `${loc.lat.toFixed(4)}°\n${loc.lon.toFixed(4)}°`;
-  img.onload  = () => { img.style.display = 'block'; ph.style.display = 'none'; };
-  img.onerror = () => { img.style.display = 'none';  ph.style.display = 'flex'; };
+  const img = document.getElementById('ipThumbImg');
+  img.alt = loc.name;
   img.src = loc.image;
 
-  // Slide panels in
-  document.getElementById('locationPanel').classList.add('show');
-  document.getElementById('imagePanel').classList.add('show');
+  document.getElementById('infoPanel').classList.add('show');
 
-  // Big letter flash in center — fades after 2.5 s
   revealLetter(loc.letter, `${loc.name}, ${loc.region}`);
   setTimeout(hideLetter, 2500);
 }
 
 function hidePanels() {
-  document.getElementById('locationPanel').classList.remove('show');
-  document.getElementById('imagePanel').classList.remove('show');
+  document.getElementById('infoPanel').classList.remove('show');
   hideLetter();
 }
 
