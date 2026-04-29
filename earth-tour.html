@@ -504,7 +504,7 @@ const LOCATIONS = [
     bounds: null
   },
   {
-    id: 3, name: 'Fonte Boa', region: 'Amazonas, Brazil',
+    id: 3, name: 'Fonte Boa', region: 'Amazonas, Brazil', observationAltKm: 65,
     lat: -2.441889, lon: -66.278806,
     image: 'Fonte Boa.jpeg',
     letter: 'G',
@@ -809,7 +809,7 @@ async function startTour(startIdx) {
 
     // — Phase 2: zoom in
     await flyTo(
-      loc.lon, loc.lat, OBSERVATION_ALTITUDE_KM * 1000,
+      loc.lon, loc.lat, (loc.observationAltKm || OBSERVATION_ALTITUDE_KM) * 1000,
       -75, ZOOM_DURATION_S, Cesium.EasingFunction.CUBIC_IN_OUT
     );
     if (myId !== tourId) return;
